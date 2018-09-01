@@ -1,3 +1,6 @@
-import * as wasm from "dots";
+import { Game } from "dots";
 
-wasm.greet();
+const game = Game.new();
+
+console.log(game.width);
+console.log(game.height);

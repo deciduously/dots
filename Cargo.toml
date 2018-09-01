@@ -1,22 +1,28 @@
 [package]
-name = "dots"
-version = "0.0.1"
 authors = ["deciduously <bendlovy@gmail.com>"]
 description = "Casual web game"
 license = "MIT"
+name = "dots"
+version = "0.0.1"
+repository = "https://github.com/deciduously/dots.git"
+[dependencies]
+cfg-if = "0.1.2"
+#rand = "0.5"
+wasm-bindgen = "0.2"
 
-[lib]
-crate-type = ["cdylib"]
+[dependencies.console_error_panic_hook]
+optional = true
+version = "0.1.1"
+
+[dependencies.wee_alloc]
+optional = true
+version = "0.4.1"
 
 [features]
 default-features = ["console_error_panic_hook", "wee_alloc"]
 
-[dependencies]
-cfg-if = "0.1.2"
-wasm-bindgen = "0.2"
-
-# The `console_error_panic_hook` crate provides better debugging of panics by
-# logging them with `console.error`. This is great for development, but requires
+[lib]
+crate-type = ["cdylib"]
 # all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
 # code size when deploying.
 console_error_panic_hook = { version = "0.1.1", optional = true }
