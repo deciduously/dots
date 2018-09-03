@@ -76,11 +76,11 @@ impl Point {
             random() * (y_bound as f32 - min) + min,
         )
             .into();
-        if x_bound - ret.x <= START_RADIUS {
-            ret.x = ret.x - START_RADIUS;
+        if x_bound - ret.x <= min {
+            ret.x = ret.x - min;
         }
-        if y_bound - ret.y <= START_RADIUS {
-            ret.y = ret.y - START_RADIUS;
+        if y_bound - ret.y <= min {
+            ret.y = ret.y - min;
         }
         ret
     }
