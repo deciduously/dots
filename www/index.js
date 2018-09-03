@@ -1,4 +1,9 @@
 import { Game } from "dots";
+import { networkInterfaces } from "os";
+
+// capping the tick to 60 times a second
+const updates_per_second = 60;
+const millis_per_update = 1 / updates_per_second * 1000;
 
 // start things up - Game is our WASM interface
 const game = Game.new();
@@ -13,7 +18,7 @@ const ctx = canvas.getContext('2d');
 
 // click handler
 canvas.addEventListener("click", event => {
-    // shamelessly lifted
+    // shamelessly lifted from the RustWasm book
     // https://rustwasm.github.io/book/game-of-life/interactivity.html
     const boundingRect = canvas.getBoundingClientRect();
 
@@ -26,20 +31,19 @@ canvas.addEventListener("click", event => {
     game.add_player(canvasX, canvasY);
 });
 
-// define the main loop
+// define the main loop, updated 60 times per second
 const renderLoop = () => {
-    game.tick()
-
-    // here's where to cap to 60 fps if desired
-    drawGame();
-
-    requestAnimationFrame(renderLoop);
+    if (Date.now() - game.last_update() >= millis_per_update) {
+        game.tick()
+        drawGame();
+        requestAnimationFrame(renderLoop);
+    }
 }
 
 // Define how to draw a single frame
 const drawGame = () => {
     const numDots = game.num_dots();
-    ctx.clearRect(0, 0, width,  height);
+    ctx.clearRect(0, 0, width, height);
 
     // draw each dot, grabbing params from the WASM
     for (let idx = 0; idx < numDots; idx++) {

@@ -5,13 +5,9 @@ mod utils;
 use wasm_bindgen::prelude::*;
 
 const SCREEN_SIZE: (u32, u32) = (800, 600);
-const START_RADIUS: f32 = 10.0;
+const START_RADIUS: f32 = 8.0;
 const FINAL_RADIUS: f32 = 50.0; // dot will grow from START to FINAL
 const SPEED: f32 = 2.0;
-
-// This all should go over to the frontend I think
-//const UPDATES_PER_SECOND: f32 = 60.0;
-//const MILLIS_PER_UPDATE: u64 = (1.0 / UPDATES_PER_SECOND * 1000.0) as u64;
 
 // using Math.random from JS for colors, positions, directions
 #[wasm_bindgen(js_namespace = Math)]
@@ -156,6 +152,7 @@ pub struct Game {
     height: u32,
     width: u32,
     dots: Vec<Dot>,
+    last_update: u32,
 }
 
 #[wasm_bindgen]
@@ -165,6 +162,7 @@ impl Game {
             height: SCREEN_SIZE.1,
             width: SCREEN_SIZE.0,
             dots: init_dots(5),
+            last_update: now(),
         }
     }
 
@@ -172,6 +170,11 @@ impl Game {
         for d in &mut self.dots {
             d.tick();
         }
+        self.last_update = now();
+    }
+
+    pub fn last_update(&self) -> u32 {
+        self.last_update
     }
 
     pub fn height(&self) -> u32 {
