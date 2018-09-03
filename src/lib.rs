@@ -73,7 +73,7 @@ impl Point {
         let y_bound = SCREEN_SIZE.1 as f32;
         let mut ret: Self = (
             random() * (x_bound - min) + min,
-            random() * (y_bound as f32 - min) + min,
+            random() * (y_bound - min) + min,
         )
             .into();
         if x_bound - ret.x <= min {
