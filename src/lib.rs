@@ -210,10 +210,13 @@ pub struct Game {
     width: u32,
     dots: HashMap<u32, Dot>,
     last_update: u32,
+    clicked: bool,
 }
 
 #[wasm_bindgen]
 impl Game {
+    // Public
+
     pub fn new() -> Game {
         utils::set_panic_hook();
         Game {
@@ -221,6 +224,7 @@ impl Game {
             width: SCREEN_SIZE.0,
             dots: init_dots(40),
             last_update: now(),
+            clicked: false,
         }
     }
 
@@ -276,12 +280,38 @@ impl Game {
     }
 
     pub fn add_player(&mut self, x: f32, y: f32) {
-        let idx = self.dots.len() as u32;
-        self.dots.insert(
-            idx,
-            Dot::new((x, y).into(), Point::new(0.0, 0.0), DotState::Growing),
-        );
+        if !self.clicked {
+            let idx = self.dots.len() as u32;
+            self.dots.insert(
+                idx,
+                Dot::new((x, y).into(), Point::new(0.0, 0.0), DotState::Growing),
+            );
+            self.clicked = true;
+        }
     }
+
+    pub fn get_progress_text(&self) -> String {
+        let mut total = self.dots.len();
+        if self.clicked {
+            // don't count the player dot
+            total -= 1;
+        }
+        let remaining = total - self
+            .dots
+            .iter()
+            .filter(|(_, d)| d.state == DotState::Floating)
+            .collect::<Vec<(&u32, &Dot)>>()
+            .len();
+        format!("{}/{}", remaining, total)
+    }
+
+    pub fn restart_game(&mut self) {
+        self.dots = init_dots(40);
+        self.clicked = false;
+        self.last_update = now();
+    }
+
+    // Private
 
     fn capture_dot(&mut self, id: u32) {
         self.dots

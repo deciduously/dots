@@ -1,5 +1,4 @@
 import { Game } from "dots";
-import { networkInterfaces } from "os";
 
 // capping the tick to 60 times a second
 const updates_per_second = 60;
@@ -17,7 +16,13 @@ canvas.width = width;
 const ctx = canvas.getContext('2d');
 ctx.globalAlpha = 0.8 // everything's a little transparent
 
-// click handler
+// Restart button
+const restartButton = document.getElementById("restart-button");
+restartButton.addEventListener("click", event => {
+    game.restart_game();
+});
+
+// Canvas click handler
 canvas.addEventListener("click", event => {
     // translate from page coords to canvas coords
     // shamelessly lifted from the RustWasm book
@@ -45,7 +50,14 @@ const renderLoop = () => {
 // Define how to draw a single frame
 const drawGame = () => {
     const numDots = game.num_dots();
+    
+    // Start with a blank slate
     ctx.clearRect(0, 0, width, height);
+
+    // Draw the progress counter
+    ctx.font = '32px serif';
+    ctx.fillStyle = 'red';
+    ctx.fillText(game.get_progress_text(), 10, 42);
 
     // draw each dot, grabbing params from the WASM
     for (let idx = 0; idx < numDots; idx++) {
