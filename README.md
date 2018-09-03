@@ -5,10 +5,20 @@ The logic implemented in Rust targeting WebAssembly, with the rendering handled 
 
 Currently, not much is implemented - there's no levels or endgame detection, you can just click the screen once to try to capture as many as you can.  To try again, click "Restart".
 
+![screenshot](https://i.imgur.com/zZD0hiI.png)
+
 ## Usage
 
 Stay tuned, I plan to self-host the finish app.
 
 ## Develop
 
-Requires Rust nightly and `wasm-pack`.  Clone this repo, execute `wasm-pack init` in the project root, and in a separate terminal execute `yarn start` from within `dots/www`.  This will serve the app on `localhost:8080`.
+Requires Rust nightly and `wasm-pack`. 
+
+1. Clone this repo
+2. Execute `wasm-pack init` in the project root
+3. Execute `yarn link` in the newly generated `pkg` dir to make the WASM module available to the frontend
+4. Execute `yarn link dots` in the `www` dir
+5. execute `yarn start` from within `www`.  This will serve the app on `localhost:8080`, using the WASM module.
+
+Any changes to the JS in `www/index.js` will be picked up by webpack, but if you change any Rust code you need to re-invoke `wasm-pack init`.  No need to re-link, however.
