@@ -9,7 +9,7 @@ Currently, not much is implemented - there's no levels or endgame detection, you
 
 ## Usage
 
-Stay tuned, I plan to self-host the finish app.
+Stay tuned, I plan to self-host the finished app.
 
 ## Develop
 
