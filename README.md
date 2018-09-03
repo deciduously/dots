@@ -1,7 +1,7 @@
 # dots
 WIP clone of [Boomshine](http://www.k2xl.com/games/boomshine/). The original requires Flash, so it's likely unplayable - an [Android app](https://play.google.com/store/apps/details?id=com.bantambytes.android.game.boomshine&hl=en_US) exists as well.
 
-The logic implemented in Rust targeting WebAssembly, with the rendering handled by JavaScript to a `canvas` element.
+The logic is implemented in Rust targeting WebAssembly, with the rendering handled by JavaScript to a `canvas` element.
 
 Currently, not much is implemented - there's no levels or endgame detection, you can just click the screen once to try to capture as many as you can.  To try again, click "Restart".
 
