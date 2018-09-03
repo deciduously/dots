@@ -15,6 +15,7 @@ const width = game.width();
 canvas.height = height;
 canvas.width = width;
 const ctx = canvas.getContext('2d');
+ctx.globalAlpha = 0.8 // everything's a little transparent
 
 // click handler
 canvas.addEventListener("click", event => {
