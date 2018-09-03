@@ -2,28 +2,27 @@ extern crate cfg_if;
 extern crate wasm_bindgen;
 
 mod utils;
-
-use std::time::{Duration, Instant};
 use wasm_bindgen::prelude::*;
-
-// So, your first basic strategy is to just proxy everything in the backend.
-// JS will call tick() to update everybody
-// JS will call render() to get an array of objects to render
-// JS will handle rendering said shapes (all circles) to the canvas
 
 const SCREEN_SIZE: (u32, u32) = (800, 600);
 const START_RADIUS: f32 = 10.0;
 const FINAL_RADIUS: f32 = 50.0; // dot will grow from START to FINAL
-const SPEED: f32 = 1.5;
+const SPEED: f32 = 2.0;
 
 // This all should go over to the frontend I think
 //const UPDATES_PER_SECOND: f32 = 60.0;
 //const MILLIS_PER_UPDATE: u64 = (1.0 / UPDATES_PER_SECOND * 1000.0) as u64;
 
-// using Math.random from JS for colors, positins, directions
+// using Math.random from JS for colors, positions, directions
 #[wasm_bindgen(js_namespace = Math)]
 extern "C" {
     fn random() -> f32;
+}
+
+// using Date.now from JS to track state changes
+#[wasm_bindgen(js_namespace = Date)]
+extern "C" {
+    fn now() -> u32;
 }
 
 // rgb color
@@ -48,6 +47,7 @@ impl Point {
         Self { x, y }
     }
 
+    // random X,Y that fits in SCREEN_SIZE
     fn random_point() -> Self {
         (
             random() * (SCREEN_SIZE.0 as f32),
@@ -56,16 +56,17 @@ impl Point {
             .into()
     }
 
-    //fn random_direction() -> Self {
-    // this is supposed to genrate something between -SPEED and SPEED
+    // Random direction per frame, between SPEED and -SPEED in both axes
+    // TODO make x+y always equal SPEED
+    fn random_direction() -> Self {
+        let twice_speed = SPEED * 2.0;
+        ((random() * twice_speed) - SPEED, (random() * twice_speed) - SPEED).into()
+    }
 
-    //    (rng.gen_range::<f32>(l, h_x), rng.gen_range::<f32>(l, h_y)).into()
-    //}
-    //This all isn't quite right, but I think it's close enough for now.
-
+    // TODO fix this - dots wrap sometimes and disappear sometimes
     fn translate(&mut self, td: Point) {
-        self.x = (self.x + td.x) % SCREEN_SIZE.0 as f32;
-        self.y = (self.y + td.y) % SCREEN_SIZE.1 as f32;
+        self.x = (self.x + td.x) % (SCREEN_SIZE.0 as f32);
+        self.y = (self.y + td.y) % (SCREEN_SIZE.1 as f32);
     }
 }
 
@@ -75,16 +76,15 @@ impl From<(f32, f32)> for Point {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum DotState {
     Floating,
     Growing,
-    Full(Instant),
+    Full(u32),
     Shrinking,
     Dead,
 }
 
-#[derive(Clone)]
 pub struct Dot {
     id: u32,
     pos: Point,
@@ -116,13 +116,13 @@ impl Dot {
             Growing => {
                 if self.radius == FINAL_RADIUS {
                     // To keep track of how long it's been full.
-                    self.state = Full(Instant::now());
+                    self.state = Full(now());
                 } else if self.radius < FINAL_RADIUS {
                     self.radius += 0.5;
                 }
             }
             Full(start_time) => {
-                if Instant::now() - start_time >= Duration::from_millis(250) {
+                if now() - start_time >= 200 {
                     self.state = Shrinking;
                 }
             }
@@ -130,7 +130,7 @@ impl Dot {
                 if self.radius == START_RADIUS {
                     self.state = Dead;
                 } else if self.radius > START_RADIUS {
-                    self.radius -= 1.0;
+                    self.radius -= 0.5;
                 }
             }
             Dead => {}
@@ -138,13 +138,13 @@ impl Dot {
     }
 }
 
-fn init_dots<'a>(num_dots: u32) -> Vec<Dot> {
+fn init_dots(num_dots: u32) -> Vec<Dot> {
     let mut ret = Vec::with_capacity(num_dots as usize + 1); // add one to make room for the player dot
     for idx in 0..num_dots {
         ret.push(Dot::new(
             idx,
             Point::random_point(),
-            (0.5, 0.5).into(),
+            Point::random_direction(),
             DotState::Floating,
         ));
     }
@@ -202,8 +202,26 @@ impl Game {
         self.dots[id as usize].pos.y
     }
 
-    // returns the hex code
     pub fn get_dot_color(&self, id: u32) -> String {
         self.dots[id as usize].color.clone()
+    }
+
+    pub fn draw_dot(&self, id: u32) -> bool {
+        // True unless we're Dead
+        if self.dots[id as usize].state == DotState::Dead {
+            false
+        } else {
+            true
+        }
+    }
+
+    pub fn add_player(&mut self, x: f32, y: f32) {
+        let idx = self.dots.len() as u32;
+        self.dots.push(Dot::new(
+            idx,
+            (x, y).into(),
+            Point::new(0.0, 0.0),
+            DotState::Growing,
+        ))
     }
 }

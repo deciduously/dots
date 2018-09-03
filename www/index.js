@@ -1,5 +1,4 @@
 import { Game } from "dots";
-import { memory } from "dots/dots_bg";
 
 // start things up - Game is our WASM interface
 const game = Game.new();
@@ -12,10 +11,26 @@ canvas.height = height;
 canvas.width = width;
 const ctx = canvas.getContext('2d');
 
+// click handler
+canvas.addEventListener("click", event => {
+    // shamelessly lifted
+    // https://rustwasm.github.io/book/game-of-life/interactivity.html
+    const boundingRect = canvas.getBoundingClientRect();
+
+    const scaleX = canvas.width / boundingRect.width;
+    const scaleY = canvas.height / boundingRect.height;
+  
+    const canvasX = (event.clientX - boundingRect.left) * scaleX;
+    const canvasY = (event.clientY - boundingRect.top) * scaleY;
+
+    game.add_player(canvasX, canvasY);
+});
+
 // define the main loop
 const renderLoop = () => {
     game.tick()
 
+    // here's where to cap to 60 fps if desired
     drawGame();
 
     requestAnimationFrame(renderLoop);
@@ -28,12 +43,14 @@ const drawGame = () => {
 
     // draw each dot, grabbing params from the WASM
     for (let idx = 0; idx < numDots; idx++) {
-        ctx.beginPath();
-        // use an arc from 0 to 2pi to draw a full circle
-        ctx.arc(game.get_dot_x(idx), game.get_dot_y(idx), game.get_dot_radius(idx), 0, 2 * Math.PI, false);
-        ctx.fillStyle = game.get_dot_color(idx);
-        ctx.fill();
-        ctx.stroke();
+        if (game.draw_dot(idx)) {
+            ctx.beginPath();
+            // use an arc from 0 to 2pi to draw a full circle
+            ctx.arc(game.get_dot_x(idx), game.get_dot_y(idx), game.get_dot_radius(idx), 0, 2 * Math.PI, false);
+            ctx.fillStyle = game.get_dot_color(idx);
+            ctx.fill();
+            ctx.stroke();
+        }
     }
 }
 
