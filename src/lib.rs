@@ -21,7 +21,6 @@ const SPEED: f32 = 1.5;
 //const UPDATES_PER_SECOND: f32 = 60.0;
 //const MILLIS_PER_UPDATE: u64 = (1.0 / UPDATES_PER_SECOND * 1000.0) as u64;
 
-#[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Color {r: u8, g: u8, b: u8, a: u8}
 
@@ -51,7 +50,6 @@ impl From<[u8; 4]> for Color {
 //    ].into()
 //}
 
-#[wasm_bindgen]
 #[derive(Clone, Copy, Debug)]
 pub struct Point {
     x: f32,
@@ -94,7 +92,6 @@ impl From<(f32, f32)> for Point {
     }
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub enum DotState {
     Floating,
@@ -104,9 +101,9 @@ pub enum DotState {
     Dead,
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub struct Dot {
+    id: u32,
     pos: Point,
     radius: f32,
     translation: Point,
@@ -115,8 +112,9 @@ pub struct Dot {
 }
 
 impl Dot {
-    fn new(pos: Point, translation: Point, state: DotState) -> Self {
+    fn new(id: u32, pos: Point, translation: Point, state: DotState) -> Self {
         Self {
+            id,
             pos,
             translation,
             state,
@@ -132,8 +130,8 @@ impl Dot {
 
 #[wasm_bindgen]
 pub struct Game {
-    pub height: u32,
-    pub width: u32,
+    height: u32,
+    width: u32,
     dots: Vec<Dot>,
 }
 
@@ -141,9 +139,9 @@ pub struct Game {
 impl Game {
     pub fn new() -> Game {
         Game {
-            height: 800,
-            width: 600,
-            dots: vec![Dot::new(Point::new(400.0,400.0), Point::new(0.5, 0.5), DotState::Floating)],
+            height: SCREEN_SIZE.1,
+            width: SCREEN_SIZE.0,
+            dots: vec![Dot::new(0, Point::new(400.0,400.0), Point::new(0.5, 0.5), DotState::Floating)],
         }
     }
 
@@ -151,5 +149,33 @@ impl Game {
         for d in &mut self.dots {
             d.tick();
         }
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn dots(&self) -> *const Dot {
+        self.dots.as_ptr()
+    }
+
+    pub fn num_dots(&self) -> usize {
+        self.dots.len()
+    }
+    
+    pub fn get_dot_radius(&self, id: u32) -> f32 {
+        self.dots[id as usize].radius
+    }
+    
+    pub fn get_dot_x(&self, id: u32) -> f32 {
+        self.dots[id as usize].pos.x
+    }
+
+    pub fn get_dot_y(&self, id: u32) -> f32 {
+        self.dots[id as usize].pos.y
     }
 }
