@@ -56,13 +56,25 @@ impl Point {
     // TODO make x+y always equal SPEED
     fn random_direction() -> Self {
         let twice_speed = SPEED * 2.0;
-        ((random() * twice_speed) - SPEED, (random() * twice_speed) - SPEED).into()
+        (
+            (random() * twice_speed) - SPEED,
+            (random() * twice_speed) - SPEED,
+        )
+            .into()
     }
 
     // TODO fix this - dots wrap sometimes and disappear sometimes
     fn translate(&mut self, td: Point) {
         self.x = (self.x + td.x) % (SCREEN_SIZE.0 as f32);
         self.y = (self.y + td.y) % (SCREEN_SIZE.1 as f32);
+    }
+
+    // just a lil Pythagoras, there may be a better way
+    // but I haven't done much post-HS math :(
+    fn distance(self, target: Point) -> f32 {
+        let a = self.x - target.x;
+        let b = self.y - target.y;
+        (a.powf(2.0) + b.powf(2.0)).sqrt()
     }
 }
 
@@ -132,6 +144,11 @@ impl Dot {
             Dead => {}
         }
     }
+
+    fn capture(&mut self) {
+        // we've collided
+        self.state = DotState::Growing;
+    }
 }
 
 fn init_dots(num_dots: u32) -> Vec<Dot> {
@@ -158,6 +175,7 @@ pub struct Game {
 #[wasm_bindgen]
 impl Game {
     pub fn new() -> Game {
+        utils::set_panic_hook();
         Game {
             height: SCREEN_SIZE.1,
             width: SCREEN_SIZE.0,
@@ -170,6 +188,7 @@ impl Game {
         for d in &mut self.dots {
             d.tick();
         }
+        self.handle_collisions();
         self.last_update = now();
     }
 
@@ -185,9 +204,11 @@ impl Game {
         self.width
     }
 
-    pub fn dots(&self) -> *const Dot {
-        self.dots.as_ptr()
-    }
+    // TODO design a packed linear memory layout
+    // X,Y,RADIUS sorta shindig
+    //pub fn dots(&self) -> *const Dot {
+    //    self.dots.as_ptr()
+    //}
 
     pub fn num_dots(&self) -> usize {
         self.dots.len()
@@ -211,11 +232,7 @@ impl Game {
 
     pub fn draw_dot(&self, id: u32) -> bool {
         // True unless we're Dead
-        if self.dots[id as usize].state == DotState::Dead {
-            false
-        } else {
-            true
-        }
+        !(self.dots[id as usize].state == DotState::Dead)
     }
 
     pub fn add_player(&mut self, x: f32, y: f32) {
@@ -226,5 +243,39 @@ impl Game {
             Point::new(0.0, 0.0),
             DotState::Growing,
         ))
+    }
+
+    fn capture_dot(&mut self, id: u32) {
+        self.dots[id as usize].capture();
+    }
+
+    fn handle_collisions(&mut self) {
+        // on each Floating dot, check each Growing, Full, or Shrinking dot
+        // get the distance between our two Positions
+        // if its less than the sum of the respective radii, store the idx
+        // Afterwards, capture each flagged dot
+
+        let mut collided_dots = Vec::new();
+
+        self.dots
+            .iter()
+            .filter(|d| (*d).state == DotState::Floating)
+            .for_each(|active| {
+                self.dots
+                    .iter()
+                    .filter(|d| match d.state {
+                        DotState::Growing | DotState::Full(_) | DotState::Shrinking => true,
+                        _ => false,
+                    }).for_each(|target| {
+                        let distance = active.pos.distance(target.pos);
+                        let radius_sum = active.radius + target.radius;
+                        if distance <= radius_sum {
+                            collided_dots.push(active.id);
+                        }
+                    });
+            });
+        for idx in &collided_dots {
+            self.capture_dot(*idx);
+        }
     }
 }

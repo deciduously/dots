@@ -18,6 +18,7 @@ const ctx = canvas.getContext('2d');
 
 // click handler
 canvas.addEventListener("click", event => {
+    // translate from page coords to canvas coords
     // shamelessly lifted from the RustWasm book
     // https://rustwasm.github.io/book/game-of-life/interactivity.html
     const boundingRect = canvas.getBoundingClientRect();
