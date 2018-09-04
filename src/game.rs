@@ -236,7 +236,7 @@ pub type PackedDot = [f32; 10];
 
 pub struct Level {
     pub dots: HashMap<u32, Dot>,
-    last_update: u32,
+    pub last_update: u32,
     clicked: bool,
 }
 
@@ -257,10 +257,6 @@ impl Level {
         }
         self.handle_collisions();
         self.last_update = now();
-    }
-
-    pub fn last_update(&self) -> u32 {
-        self.last_update
     }
 
     // TODO design a packed linear memory layout

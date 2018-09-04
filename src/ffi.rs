@@ -102,7 +102,7 @@ impl Game {
     }
 
     pub fn last_update(&self) -> u32 {
-        self.current.level.last_update()
+        self.current.level.last_update
     }
 
     pub fn num_dots(&self) -> u32 {
