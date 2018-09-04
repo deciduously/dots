@@ -61,6 +61,7 @@ const drawGame = () => {
   ctx.fillText(game.get_progress_text(), 10, 42)
 
   // draw each dot, grabbing params from the WASM
+  // IN PROGRESS - grabbing just a single array of Dots
   for (let idx = 0; idx < numDots; idx++) {
     if (game.draw_dot(idx)) {
       ctx.beginPath()
