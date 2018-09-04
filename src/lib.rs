@@ -6,7 +6,7 @@ mod game;
 mod utils;
 
 // Re-exports
-pub use ffi::Game;
+pub use ffi::*;
 pub use game::PackedDotState;
 
 // Constants

@@ -232,9 +232,7 @@ impl Dot {
 
 // Array layout:
 // [f32: 10] id | x | y | radius | t_x | t_y | DotState | r | g | b // TODO you can totally take out id, t_x, t_y once this all works
-pub struct PackedDot {
-    data: [f32; 10],
-}
+pub type PackedDot = [f32; 10];
 
 pub struct Level {
     pub dots: HashMap<u32, Dot>,
@@ -323,9 +321,9 @@ impl Level {
                 f32::from(dot.color.g),
                 f32::from(dot.color.b),
             ];
-            let mut packed: [f32; 10] = [0.0; 10];
+            let mut packed: PackedDot = [0.0; 10];
             packed[..10].clone_from_slice(&data_vec[..10]);
-            ret.push(PackedDot { data: packed });
+            ret.push(packed);
         }
         ret
     }

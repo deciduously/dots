@@ -20,6 +20,7 @@ extern "C" {
 
 // Exports
 
+#[wasm_bindgen]
 #[repr(C)]
 pub struct GameConfig {
     height: u32,
@@ -35,6 +36,7 @@ impl GameConfig {
     }
 }
 
+#[wasm_bindgen]
 #[repr(C)]
 pub struct GameInstance {
     level: Level,

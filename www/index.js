@@ -66,11 +66,11 @@ const drawGame = () => {
   // draw each dot, grabbing params from the WASM
   for (let idx = 0; idx < numDots; idx++) {
     // We're getting a packed [f32; 10]: id | x | y | radius | t_x | t_y | DotState | r | g | b
-    if (dots[idx].data[6] != PackedDotState.Dead) {
-      const pos_x = dots[idx].data[1]
-      const pos_y = dots[idx].data[2]
-      const radius = dots[idx].data[3]
-      const color = colorString(dots[idx].data[7], dots[idx].data[8], dots[idx].data[9])
+    if (dots[idx][6] != PackedDotState.Dead) {
+      const pos_x = dots[idx][1]
+      const pos_y = dots[idx][2]
+      const radius = dots[idx][3]
+      const color = colorString(dots[idx][7], [idx][8], dots[idx][9])
       ctx.beginPath()
       // use an arc from 0 to 2pi to draw a full circle
       ctx.arc(pos_x, pos_y, radius, 0, 2 * Math.PI, false)
