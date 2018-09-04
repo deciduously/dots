@@ -1,12 +1,12 @@
-/* jshint esversion: 6 */
-import { Game } from 'dots'
+import { PackedDotState, Game } from 'dots'
+import { memory } from 'dots/dots_bg'
 
 // capping the tick to 60 times a second
 const updatesPerSecond = 60
 const millisPerUpdate = 1 / updatesPerSecond * 1000
 
 // start things up - Game is our WASM interface
-const game = Game.new()
+const game = new Game(40)
 
 // set up the render context
 const canvas = document.getElementById('dots-canvas')
@@ -17,10 +17,10 @@ canvas.width = width
 const ctx = canvas.getContext('2d')
 ctx.globalAlpha = 0.8 // everything's a little transparent
 
-// Restart button
+// Restart button - TODO have it flip and be the same button as start-game
 const restartButton = document.getElementById('restart-button')
 restartButton.addEventListener('click', event => {
-  game.restart_game()
+  game.load_level(40) // eventually 1,2,3etc, for now its num_dots
 })
 
 // Canvas click handler
@@ -50,29 +50,42 @@ const renderLoop = () => {
 
 // Define how to draw a single frame
 const drawGame = () => {
-  const numDots = game.num_dots()
 
   // Start with a blank slate
   ctx.clearRect(0, 0, width, height)
 
+  // Get our dots
+  const dotsPtr = game.pack()
+  const dots = new Float32Array(memory.buffer, dotsPtr, game.numDots())
+
   // Draw the progress counter
-  ctx.font = '30px serif'
+  ctx.font = '32px serif'
   ctx.fillStyle = 'red'
   ctx.fillText(game.get_progress_text(), 10, 42)
 
   // draw each dot, grabbing params from the WASM
-  // IN PROGRESS - grabbing just a single array of Dots
   for (let idx = 0; idx < numDots; idx++) {
-    if (game.draw_dot(idx)) {
+    // We're getting a packed [f32; 10]: id | x | y | radius | t_x | t_y | DotState | r | g | b
+    if (dots[idx].data[6] != PackedDotState.Dead) {
+      const pos_x = dots[idx].data[1]
+      const pos_y = dots[idx].data[2]
+      const radius = dots[idx].data[3]
+      const color = colorString(dots[idx].data[7], dots[idx].data[8], dots[idx].data[9])
       ctx.beginPath()
       // use an arc from 0 to 2pi to draw a full circle
-      ctx.arc(game.get_dot_x(idx), game.get_dot_y(idx), game.get_dot_radius(idx), 0, 2 * Math.PI, false)
-      ctx.fillStyle = game.get_dot_color(idx)
+      ctx.arc(pos_x, pos_y, radius, 0, 2 * Math.PI, false)
+      ctx.fillStyle = color
       ctx.fill()
       ctx.stroke()
     }
   }
 }
 
+const colorString = (r, g, b) => {
+  "#" + r.toString(16) + g.toString(16) + b.toString(16)
+}
+
 // Kick off the render loop by asking for the first frame
 window.requestAnimationFrame(renderLoop)
+
+game.free()
