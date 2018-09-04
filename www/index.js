@@ -50,14 +50,14 @@ const renderLoop = () => {
 
 // Define how to draw a single frame
 const drawGame = () => {
-  const numDots = game.num_dots()
+  const dataLength = game.num_dots() * 7
 
   // Start with a blank slate
   ctx.clearRect(0, 0, width, height)
 
   // Get our packed up dots
   const dotsPtr = game.pack()
-  const dots = new Float32Array(memory.buffer, dotsPtr, numDots * 7)
+  const dots = new Float32Array(memory.buffer, dotsPtr, dataLength)
 
   // Draw the progress counter
   ctx.font = '32px serif'
@@ -65,7 +65,7 @@ const drawGame = () => {
   ctx.fillText(game.get_progress_text(), 10, 42)
 
   // draw each dot
-  for (let idx = 0; idx < numDots; idx += 7) {
+  for (let idx = 0; idx < dataLength; idx += 7) {
     // We're getting a packed [f32; 7]:  x | y | radius | DotState | r | g | b
     if (dots[idx + 3] !== 5.0) {
       const posX = dots[idx]
