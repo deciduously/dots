@@ -1,4 +1,4 @@
-import { PackedDotState, Game } from 'dots'
+import { Game } from 'dots'
 import { memory } from 'dots/dots_bg'
 
 // capping the tick to 60 times a second
@@ -50,30 +50,32 @@ const renderLoop = () => {
 
 // Define how to draw a single frame
 const drawGame = () => {
+  const numDots = game.num_dots()
 
   // Start with a blank slate
   ctx.clearRect(0, 0, width, height)
 
-  // Get our dots
+  // Get our packed up dots
   const dotsPtr = game.pack()
-  const dots = new Float32Array(memory.buffer, dotsPtr, game.numDots())
+  const dots = new Float32Array(memory.buffer, dotsPtr, numDots * 7)
 
   // Draw the progress counter
   ctx.font = '32px serif'
   ctx.fillStyle = 'red'
   ctx.fillText(game.get_progress_text(), 10, 42)
 
-  // draw each dot, grabbing params from the WASM
-  for (let idx = 0; idx < numDots; idx++) {
-    // We're getting a packed [f32; 10]: id | x | y | radius | t_x | t_y | DotState | r | g | b
-    if (dots[idx][6] != PackedDotState.Dead) {
-      const pos_x = dots[idx][1]
-      const pos_y = dots[idx][2]
-      const radius = dots[idx][3]
-      const color = colorString(dots[idx][7], [idx][8], dots[idx][9])
+  // draw each dot
+  for (let idx = 0; idx < numDots; idx += 7) {
+    // We're getting a packed [f32; 7]:  x | y | radius | DotState | r | g | b
+    if (dots[idx + 3] !== 5.0) {
+      const posX = dots[idx]
+      const posY = dots[idx + 1]
+      const radius = dots[idx + 2]
+      const color = colorString(dots[idx + 4], dots[idx + 5], dots[idx + 6])
+      //console.log('(' + posX + 'y' + posY + ' r: ' + radius + ' color: ' + color)
       ctx.beginPath()
       // use an arc from 0 to 2pi to draw a full circle
-      ctx.arc(pos_x, pos_y, radius, 0, 2 * Math.PI, false)
+      ctx.arc(posX, posY, radius, 0, 2 * Math.PI, false)
       ctx.fillStyle = color
       ctx.fill()
       ctx.stroke()
@@ -81,11 +83,7 @@ const drawGame = () => {
   }
 }
 
-const colorString = (r, g, b) => {
-  "#" + r.toString(16) + g.toString(16) + b.toString(16)
-}
+const colorString = (r, g, b) => '#' + Math.floor(r).toString(16) + Math.floor(g).toString(16) + Math.floor(b).toString(16)
 
 // Kick off the render loop by asking for the first frame
 window.requestAnimationFrame(renderLoop)
-
-game.free()

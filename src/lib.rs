@@ -7,7 +7,6 @@ mod utils;
 
 // Re-exports
 pub use ffi::*;
-pub use game::PackedDotState;
 
 // Constants
 const SCREEN_SIZE: (u32, u32) = (800, 600);

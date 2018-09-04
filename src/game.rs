@@ -2,7 +2,6 @@
 use super::{FINAL_RADIUS, SCREEN_SIZE, SPEED, START_RADIUS};
 use ffi::{now, random};
 use std::{collections::HashMap, fmt};
-use wasm_bindgen::prelude::*;
 
 // UTILITY
 
@@ -131,7 +130,6 @@ pub enum DotState {
 }
 
 // because I'm stubborn and enjoy my Full(u32)
-#[wasm_bindgen]
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PackedDotState {
@@ -231,8 +229,8 @@ impl Dot {
 }
 
 // Array layout:
-// [f32: 10] id | x | y | radius | t_x | t_y | DotState | r | g | b // TODO you can totally take out id, t_x, t_y once this all works
-pub type PackedDot = [f32; 10];
+// [f32: 7]  x | y | radius | DotState | r | g | b
+pub type PackedDot = [f32; 7];
 
 pub struct Level {
     pub dots: HashMap<u32, Dot>,
@@ -304,21 +302,19 @@ impl Level {
     }
 
     pub fn pack(&self) -> Vec<PackedDot> {
-        let mut ret = Vec::with_capacity(self.num_dots());
-        for (id, dot) in &self.dots {
+        let mut ret = Vec::with_capacity(self.num_dots() * 7);
+        for dot in self.dots.values() {
             let data_vec = vec![
-                *id as f32,
                 dot.pos.x,
                 dot.pos.y,
                 dot.radius,
-                dot.translation.x,
-                dot.translation.y,
+                PackedDotState::from(dot.state) as u8 as f32,
                 f32::from(dot.color.r),
                 f32::from(dot.color.g),
                 f32::from(dot.color.b),
             ];
-            let mut packed: PackedDot = [0.0; 10];
-            packed[..10].clone_from_slice(&data_vec[..10]);
+            let mut packed: PackedDot = [0.0; 7];
+            packed[..7].copy_from_slice(&data_vec[..7]);
             ret.push(packed);
         }
         ret
