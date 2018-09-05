@@ -226,6 +226,21 @@ impl Dot {
             self.translation = (self.translation.x, -self.translation.y).into();
         }
     }
+
+    fn pack(&self) -> PackedDot {
+        let data_vec = vec![
+            self.pos.x,
+            self.pos.y,
+            self.radius,
+            PackedDotState::from(self.state) as u8 as f32,
+            f32::from(self.color.r),
+            f32::from(self.color.g),
+            f32::from(self.color.b),
+        ];
+        let mut packed: PackedDot = [0.0; 7];
+        packed[..7].copy_from_slice(&data_vec[..7]);
+        packed
+    }
 }
 
 // Array layout:
@@ -257,14 +272,6 @@ impl Level {
         self.last_update = now();
     }
 
-    // TODO design a packed linear memory layout
-    // X,Y,RADIUS sorta shindig
-    //pub fn dots(&self) -> *const Dot {
-    //    self.dots.as_ptr()
-    //}
-
-    // DONT FORGET TO DELETE ALL OF THESE
-
     pub fn num_dots(&self) -> usize {
         self.dots.len()
     }
@@ -281,11 +288,11 @@ impl Level {
     }
 
     pub fn get_progress_text(&self) -> String {
-        let mut total = self.dots.len();
-        if self.clicked {
-            // don't count the player dot
-            total -= 1;
-        }
+        let total = if self.clicked {
+            self.dots.len() - 1
+        } else {
+            self.dots.len()
+        };
         let remaining = total - self
             .dots
             .iter()
@@ -304,17 +311,7 @@ impl Level {
     pub fn pack(&self) -> Vec<PackedDot> {
         let mut ret = Vec::with_capacity(self.num_dots() * 7);
         for dot in self.dots.values() {
-            let data_vec = vec![
-                dot.pos.x,
-                dot.pos.y,
-                dot.radius,
-                PackedDotState::from(dot.state) as u8 as f32,
-                f32::from(dot.color.r),
-                f32::from(dot.color.g),
-                f32::from(dot.color.b),
-            ];
-            let mut packed: PackedDot = [0.0; 7];
-            packed[..7].copy_from_slice(&data_vec[..7]);
+            let packed = dot.pack();
             ret.push(packed);
         }
         ret
@@ -330,11 +327,8 @@ impl Level {
             // which is a bad way to handle this - setting it to Growing nullifies the point
             // but, again, we're never going to hit this fn with an ID from a dot that doesn't exist
             // the ID being passed in is read directly from the Dots hashmap, and we never remove keys
-            .or_insert_with(|| Dot::new(
-                (0.0, 0.0).into(),
-                (0.0, 0.0).into(),
-                DotState::Dead,
-            )).capture();
+            .or_insert_with(|| Dot::new((0.0, 0.0).into(), (0.0, 0.0).into(), DotState::Dead))
+            .capture();
     }
 
     fn handle_collisions(&mut self) {

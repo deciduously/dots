@@ -6,7 +6,7 @@ const updatesPerSecond = 60
 const millisPerUpdate = 1 / updatesPerSecond * 1000
 
 // start things up - Game is our WASM interface
-const game = new Game(40)
+const game = new Game(60)
 
 // set up the render context
 const canvas = document.getElementById('dots-canvas')
@@ -20,7 +20,7 @@ ctx.globalAlpha = 0.8 // everything's a little transparent
 // Restart button - TODO have it flip and be the same button as start-game
 const restartButton = document.getElementById('restart-button')
 restartButton.addEventListener('click', event => {
-  game.load_level(40) // eventually 1,2,3etc, for now its num_dots
+  game.load_level(60) // eventually 1,2,3etc, for now its num_dots
 })
 
 // Canvas click handler
