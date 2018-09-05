@@ -23,3 +23,7 @@ Requires Rust nightly and `wasm-pack`.
 6. Execute `yarn start` from within `www`.  This will serve the app on `localhost:8080`
 
 Any changes to the JS in `www/index.js` will be picked up by webpack, but if you change any Rust code you need to re-invoke `wasm-pack init`.
+
+## Acknowledgements
+
+This is pretty much the tutorial from the RustWasm [book](https://rustwasm.github.io/book/) with a bigger game behind it.  Thanks, RustWasm crew!
