@@ -6,7 +6,7 @@ use std::{collections::HashMap, fmt};
 // UTILITY
 
 // Create initial dot layout
-fn init_dots(num_dots: u32) -> HashMap<u32, Dot> {
+fn init_dots(num_dots: u8) -> HashMap<u8, Dot> {
     let mut ret = HashMap::new();
     for idx in 0..num_dots {
         ret.insert(
@@ -232,7 +232,7 @@ impl Dot {
             self.pos.x,
             self.pos.y,
             self.radius,
-            PackedDotState::from(self.state) as u8 as f32,
+            f32::from(PackedDotState::from(self.state) as u8),
             f32::from(self.color.r),
             f32::from(self.color.g),
             f32::from(self.color.b),
@@ -247,19 +247,25 @@ impl Dot {
 // [f32: 7]  x | y | radius | DotState | r | g | b
 pub type PackedDot = [f32; 7];
 
+// this is the first few f32s in the array
+// level_number | total_dots | win_threshold | caputured_dots | last_update
+pub type LevelHeader = [f32; 5];
+
 pub struct Level {
-    pub dots: HashMap<u32, Dot>,
-    pub last_update: u32,
+    dots: HashMap<u8, Dot>,
+    last_update: u32,
+    level: u8,
     clicked: bool,
 }
 
 impl Level {
     // Public
 
-    pub fn new(num_dots: u32) -> Level {
+    pub fn new(l: u32) -> Level {
         Level {
-            dots: init_dots(num_dots),
+            dots: init_dots(level(l as u8).unwrap().0),
             last_update: now(),
+            level: l as u8,
             clicked: false,
         }
     }
@@ -272,13 +278,9 @@ impl Level {
         self.last_update = now();
     }
 
-    pub fn num_dots(&self) -> usize {
-        self.dots.len()
-    }
-
     pub fn add_player(&mut self, x: f32, y: f32) {
         if !self.clicked {
-            let idx = self.dots.len() as u32;
+            let idx = self.dots.len() as u8;
             self.dots.insert(
                 idx,
                 Dot::new((x, y).into(), Point::new(0.0, 0.0), DotState::Growing),
@@ -287,39 +289,31 @@ impl Level {
         }
     }
 
-    pub fn get_progress_text(&self) -> String {
-        let total = if self.clicked {
-            self.dots.len() - 1
-        } else {
-            self.dots.len()
-        };
-        let remaining = total - self
-            .dots
-            .iter()
-            .filter(|(_, d)| d.state == DotState::Floating)
-            .collect::<Vec<(&u32, &Dot)>>()
-            .len();
-        format!("{}/{}", remaining, total)
-    }
-
     pub fn restart_level(&mut self) {
-        self.dots = init_dots(40);
+        self.dots = init_dots(level(self.level).unwrap().0);
         self.clicked = false;
         self.last_update = now();
     }
 
-    pub fn pack(&self) -> Vec<PackedDot> {
-        let mut ret = Vec::with_capacity(self.num_dots() * 7);
+    pub fn pack(&self) -> Result<Vec<f32>, ::std::io::Error> {
+        let header = self.header()?;
+        let num_dots_int = header[1] as i32 as usize;
+        let mut ret = Vec::with_capacity(num_dots_int * 7 + header.len());
+        for e in header.iter().cloned() {
+            ret.push(e)
+        }
         for dot in self.dots.values() {
             let packed = dot.pack();
-            ret.push(packed);
+            for i in packed.iter().cloned() {
+                ret.push(i)
+            }
         }
-        ret
+        Ok(ret)
     }
 
     // Private
 
-    fn capture_dot(&mut self, id: u32) {
+    fn capture_dot(&mut self, id: u8) {
         self.dots
             .entry(id)
             // this code path should never execute
@@ -359,5 +353,37 @@ impl Level {
         for idx in &collided_dots {
             self.capture_dot(*idx);
         }
+    }
+
+    // Array format:
+    // [f32; 5]: level_number | total_dots | win_threshold | caputured_dots | last_update
+    fn header(&self) -> Result<LevelHeader, ::std::io::Error> {
+        let (total_dots, win_threshold) = level(self.level)?;
+        let captured = total_dots - self
+            .dots
+            .iter()
+            .filter(|(_, d)| d.state == DotState::Floating)
+            .collect::<Vec<(&u8, &Dot)>>()
+            .len() as u8;
+        let mut ret: [f32; 5] = [0.0; 5];
+        ret[0] = f32::from(self.level);
+        ret[1] = f32::from(total_dots);
+        ret[2] = f32::from(win_threshold);
+        ret[3] = f32::from(captured);
+        ret[4] = self.last_update as f32;
+        Ok(ret)
+    }
+}
+
+// (total_dots, win_threshold)
+fn level(number: u8) -> Result<(u8, u8), ::std::io::Error> {
+    match number {
+        1 => Ok((5, 1)),
+        2 => Ok((6, 2)),
+        3 => Ok((60, 40)),
+        _ => Err(::std::io::Error::new(
+            ::std::io::ErrorKind::InvalidInput,
+            format!("No level defined: {}", number),
+        )),
     }
 }

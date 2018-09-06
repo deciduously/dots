@@ -5,8 +5,9 @@ import { memory } from 'dots/dots_bg'
 const updatesPerSecond = 60
 const millisPerUpdate = 1 / updatesPerSecond * 1000
 
-// start things up - Game is our WASM interface
-const game = new Game(60)
+var level = 3 // for demo purposes, this is 60 dots, 40 to win
+
+const game = new Game(level)
 
 // set up the render context
 const canvas = document.getElementById('dots-canvas')
@@ -20,7 +21,7 @@ ctx.globalAlpha = 0.8 // everything's a little transparent
 // Restart button - TODO have it flip and be the same button as start-game
 const restartButton = document.getElementById('restart-button')
 restartButton.addEventListener('click', event => {
-  game.load_level(60) // eventually 1,2,3etc, for now its num_dots
+  game.load_level(level)
 })
 
 // Canvas click handler
@@ -41,38 +42,58 @@ canvas.addEventListener('click', event => {
 
 // define the main loop, updated 60 times per second
 const renderLoop = () => {
-  if (Date.now() - game.last_update() >= millisPerUpdate) {
-    game.tick()
-    drawGame()
+  // tick us forward and grab the packed version
+  game.tick()
+  const levelPtr = game.pack()
+
+  // last_update is the 4th f32 transmitted in the header
+  // header format:
+  // level_number (unused!!) | total_dots | win_threshold | captured_dots | last_update
+  const header = new Float32Array(memory.buffer, levelPtr, 5)
+  const totalDots = header[1]
+  const winThreshold = header[2]
+  const capturedDots = header[3]
+  const lastUpdate = header[4]
+
+  if (Date.now() - lastUpdate >= millisPerUpdate) {
+    drawGame(levelPtr, totalDots, winThreshold, capturedDots)
     window.requestAnimationFrame(renderLoop)
   }
 }
 
 // Define how to draw a single frame
-const drawGame = () => {
-  const dataLength = game.num_dots() * 7
-
+const drawGame = (levelPtr, totalDots, winThreshold, capturedDots) => {
   // Start with a blank slate
   ctx.clearRect(0, 0, width, height)
 
-  // Get our packed up dots
-  const dotsPtr = game.pack()
-  const dots = new Float32Array(memory.buffer, dotsPtr, dataLength)
+  // grab so we can loop over the dots
+  const dataLength = totalDots * 7 + 5 // length of a packed dot
+
+  // to tell if we won
+  const won = capturedDots >= winThreshold
+
+  // load up the dots
+  const dots = new Float32Array(memory.buffer, levelPtr, dataLength)
 
   // Draw the progress counter
   ctx.font = '32px serif'
-  ctx.fillStyle = 'red'
-  ctx.fillText(game.get_progress_text(), 10, 42)
+  ctx.fillStyle = won ? 'green' : 'red'
+  ctx.fillText(capturedDots + '/' + totalDots, 10, 42)
 
-  // draw each dot
-  for (let idx = 0; idx < dataLength; idx += 7) {
+  // Draw the level number
+  ctx.font = '20px serif'
+  ctx.fillStyle = 'blue'
+  ctx.fillText('level ' + level, 10, 70)
+
+  // draw each dot, skipping the header
+  for (let idx = 5; idx < dataLength; idx += 7) {
     // We're getting a packed [f32; 7]:  x | y | radius | DotState | r | g | b
     if (dots[idx + 3] !== 5.0) {
       const posX = dots[idx]
       const posY = dots[idx + 1]
       const radius = dots[idx + 2]
       const color = colorString(dots[idx + 4], dots[idx + 5], dots[idx + 6])
-      //console.log('(' + posX + 'y' + posY + ' r: ' + radius + ' color: ' + color)
+      // console.log('(' + posX + 'y' + posY + ' r: ' + radius + ' color: ' + color)
       ctx.beginPath()
       // use an arc from 0 to 2pi to draw a full circle
       ctx.arc(posX, posY, radius, 0, 2 * Math.PI, false)

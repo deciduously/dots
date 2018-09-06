@@ -1,6 +1,6 @@
 // FFI.rs contains the public FFI interface for wasm_bindgen
 use super::SCREEN_SIZE;
-use game::{Level, PackedDot};
+use game::Level;
 use utils::set_panic_hook;
 use wasm_bindgen::prelude::*;
 
@@ -85,10 +85,6 @@ impl Game {
         self.current.level.tick();
     }
 
-    pub fn get_progress_text(&self) -> String {
-        self.current.level.get_progress_text()
-    }
-
     pub fn add_player(&mut self, x: f32, y: f32) {
         self.current.level.add_player(x, y)
     }
@@ -97,15 +93,7 @@ impl Game {
         self.current.level.restart_level()
     }
 
-    pub fn pack(&self) -> *const PackedDot {
-        self.current.level.pack().as_ptr()
-    }
-
-    pub fn last_update(&self) -> u32 {
-        self.current.level.last_update
-    }
-
-    pub fn num_dots(&self) -> u32 {
-        self.current.level.num_dots() as u32
+    pub fn pack(&self) -> *const f32 {
+        self.current.level.pack().unwrap().as_ptr()
     }
 }
