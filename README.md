@@ -3,8 +3,6 @@ WIP clone of [Boomshine](http://www.k2xl.com/games/boomshine/). The original req
 
 The logic is implemented in Rust targeting WebAssembly, with the rendering handled by JavaScript to a `canvas` element.
 
-Currently, not much is implemented - there's no levels or endgame detection, you can just click the screen once to try to capture as many as you can.  To try again, click "Restart".
-
 ![screenshot](https://i.imgur.com/zZD0hiI.png)
 
 ## Usage
