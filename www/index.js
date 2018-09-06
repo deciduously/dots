@@ -19,6 +19,7 @@ ctx.globalAlpha = 0.8 // everything's a little transparent
 // Restart game button
 const restartGameButton = document.getElementById('restart-game-button')
 restartGameButton.addEventListener('click', event => {
+  game.free()
   game = new Game()
 })
 
@@ -67,13 +68,15 @@ const renderLoop = () => {
 
   // get dots
   const dataLength = totalDots * 7 + 5
-  const dots = new Float32Array(memory.buffer, levelPtr, dataLength).slice(5, dataLength + 1)
+  const dots = new Float32Array(memory.buffer, levelPtr, dataLength).slice(5)
 
   if (Date.now() - lastUpdate >= millisPerUpdate) {
     drawGame(dots, level, totalDots, winThreshold, capturedDots)
     window.requestAnimationFrame(renderLoop)
   }
 }
+
+// DRAW FNS
 
 // Define how to draw a single frame
 const drawGame = (dots, level, totalDots, winThreshold, capturedDots) => {
@@ -121,5 +124,6 @@ const drawDot = packedDot => {
 
 const colorString = (r, g, b) => '#' + Math.floor(r).toString(16) + Math.floor(g).toString(16) + Math.floor(b).toString(16)
 
-// Kick off the render loop by asking for the first frame
+// INIT
+
 window.requestAnimationFrame(renderLoop)

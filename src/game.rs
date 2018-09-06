@@ -366,12 +366,15 @@ impl Level {
         } else {
             level_dots
         };
+        let data_vec = vec![
+            f32::from(self.level),
+            f32::from(total_dots),
+            f32::from(win_threshold),
+            f32::from(captured),
+            f32::from(self.last_update),
+        ];
         let mut ret: [f32; 5] = [0.0; 5];
-        ret[0] = f32::from(self.level);
-        ret[1] = f32::from(total_dots);
-        ret[2] = f32::from(win_threshold);
-        ret[3] = f32::from(captured);
-        ret[4] = f32::from(self.last_update);
+        ret[..5].copy_from_slice(&data_vec[..5]);
         Ok(ret)
     }
 }
