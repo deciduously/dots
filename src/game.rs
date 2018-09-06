@@ -6,7 +6,7 @@ use std::{collections::HashMap, fmt};
 // UTILITY
 
 // Create initial dot layout
-fn init_dots(l: u16) -> Result<HashMap<u16, Dot>, ::std::io::Error> {
+fn init_dots(l: u16) -> Result<HashMap<u16, Dot>, String> {
     let (total_dots, _) = level(l)?;
     let mut ret = HashMap::new();
     for idx in 0..total_dots {
@@ -263,7 +263,7 @@ pub struct Level {
 impl Level {
     // Public
 
-    pub fn new(l: u16) -> Result<Level, ::std::io::Error> {
+    pub fn new(l: u16) -> Result<Level, String> {
         Ok(Level {
             dots: init_dots(l)?,
             last_update: now(),
@@ -291,14 +291,7 @@ impl Level {
         }
     }
 
-    pub fn restart_level(&mut self) -> Result<(), ::std::io::Error> {
-        self.dots = init_dots(self.level)?;
-        self.clicked = false;
-        self.last_update = now();
-        Ok(())
-    }
-
-    pub fn pack(&self) -> Result<Vec<f32>, ::std::io::Error> {
+    pub fn pack(&self) -> Result<Vec<f32>, String> {
         let header = self.header()?;
         let num_dots_int = header[1] as i32 as usize;
         let mut ret = Vec::with_capacity(num_dots_int * 7 + header.len());
@@ -360,7 +353,7 @@ impl Level {
 
     // Array format:
     // [f32; 5]: level_number | total_dots | win_threshold | caputured_dots | last_update
-    fn header(&self) -> Result<LevelHeader, ::std::io::Error> {
+    fn header(&self) -> Result<LevelHeader, String> {
         let (level_dots, win_threshold) = level(self.level)?;
         let captured = level_dots - self
             .dots
@@ -384,7 +377,7 @@ impl Level {
 }
 
 // (total_dots, win_threshold)
-fn level(number: u16) -> Result<(u16, u16), ::std::io::Error> {
+fn level(number: u16) -> Result<(u16, u16), String> {
     match number {
         1 => Ok((5, 1)),
         2 => Ok((10, 3)),
@@ -393,10 +386,7 @@ fn level(number: u16) -> Result<(u16, u16), ::std::io::Error> {
         5 => Ok((30, 10)),
         6 => Ok((40, 15)),
         7 => Ok((60, 40)),
-        _ => Err(::std::io::Error::new(
-            ::std::io::ErrorKind::InvalidInput,
-            format!("No level defined: {}", number),
-        )),
+        _ => Err(format!("No level defined: {}", number)),
     }
 }
 

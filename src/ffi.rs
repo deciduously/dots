@@ -43,7 +43,7 @@ pub struct GameInstance {
 }
 
 impl GameInstance {
-    fn new(l: u16) -> Result<Self, ::std::io::Error> {
+    fn new(l: u16) -> Result<Self, String> {
         Ok(Self {
             level: Level::new(l)?,
         })
@@ -93,12 +93,13 @@ impl Game {
         if level < 7 {
             self.current = GameInstance::new(level + 1).unwrap()
         } else {
-            self.restart_level()
+            self.current = GameInstance::new(level).unwrap();
         }
     }
 
     pub fn restart_level(&mut self) {
-        self.current.level.restart_level().unwrap()
+        let level = self.current.level.level;
+        self.current = GameInstance::new(level).unwrap()
     }
 
     pub fn pack(&self) -> *const f32 {

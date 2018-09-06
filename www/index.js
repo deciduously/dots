@@ -80,36 +80,42 @@ const drawGame = (dots, level, totalDots, winThreshold, capturedDots) => {
   // Start with a blank slate
   ctx.clearRect(0, 0, width, height)
 
-  // to tell if we won
-  const won = capturedDots >= winThreshold
+  drawProgressCounter(capturedDots, totalDots, winThreshold)
+  drawLevelNumber(level)
 
-  // Draw the progress counter
+  let dotsLength = dots.length
+  for (let idx = 0; idx < dotsLength; idx += 7) {
+    drawDot(dots.slice(idx, idx + 7))
+  }
+}
+
+const drawProgressCounter = (capturedDots, totalDots, winThreshold) => {
+  const won = capturedDots >= winThreshold
   ctx.font = '32px serif'
   ctx.fillStyle = won ? 'green' : 'red'
   ctx.fillText(capturedDots + '/' + totalDots, 10, 42) // this will be wrong until I implement appstate - its including the player dot
+}
 
-  // Draw the level number
+const drawLevelNumber = level => {
   ctx.font = '20px serif'
   ctx.fillStyle = 'blue'
   ctx.fillText('level ' + level, 10, 70)
+}
 
-  // draw each dot
-  let dotsLength = dots.length
-  for (let idx = 0; idx < dotsLength; idx += 7) {
-    // We're getting a packed [f32; 7]:  x | y | radius | DotState | r | g | b
-    if (dots[idx + 3] !== 5.0) {
-      const posX = dots[idx]
-      const posY = dots[idx + 1]
-      const radius = dots[idx + 2]
-      const color = colorString(dots[idx + 4], dots[idx + 5], dots[idx + 6])
-      // console.log('(' + posX + 'y' + posY + ' r: ' + radius + ' color: ' + color)
-      ctx.beginPath()
-      // use an arc from 0 to 2pi to draw a full circle
-      ctx.arc(posX, posY, radius, 0, 2 * Math.PI, false)
-      ctx.fillStyle = color
-      ctx.fill()
-      ctx.stroke()
-    }
+const drawDot = packedDot => {
+  // x | y | radius | DotState | r | g | b
+  if (packedDot[3] !== 5.0) {
+    const posX = packedDot[0]
+    const posY = packedDot[1]
+    const radius = packedDot[2]
+    const color = colorString(packedDot[4], packedDot[5], packedDot[6])
+
+    ctx.beginPath()
+    // use an arc from 0 to 2pi to draw a full circle
+    ctx.arc(posX, posY, radius, 0, 2 * Math.PI, false)
+    ctx.fillStyle = color
+    ctx.fill()
+    ctx.stroke()
   }
 }
 
