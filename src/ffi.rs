@@ -15,7 +15,7 @@ extern "C" {
 // using Date.now from JS to track state changes
 #[wasm_bindgen(js_namespace = Date)]
 extern "C" {
-    pub fn now() -> u32;
+    pub fn now() -> u16;
 }
 
 // Exports
@@ -23,8 +23,8 @@ extern "C" {
 #[wasm_bindgen]
 #[repr(C)]
 pub struct GameConfig {
-    height: u32,
-    width: u32,
+    height: u16,
+    width: u16,
 }
 
 impl GameConfig {
@@ -43,10 +43,10 @@ pub struct GameInstance {
 }
 
 impl GameInstance {
-    fn new(num_dots: u32) -> Self {
-        Self {
-            level: Level::new(num_dots),
-        }
+    fn new(l: u16) -> Result<Self, ::std::io::Error> {
+        Ok(Self {
+            level: Level::new(l)?,
+        })
     }
 }
 
@@ -61,23 +61,19 @@ pub struct Game {
 #[wasm_bindgen]
 impl Game {
     #[wasm_bindgen(constructor)]
-    pub fn new(num_dots: u32) -> Self {
+    pub fn new() -> Self {
         set_panic_hook();
         Self {
             config: GameConfig::new(),
-            current: GameInstance::new(num_dots),
+            current: GameInstance::new(1).unwrap(),
         }
     }
 
-    pub fn load_level(&mut self, num_dots: u32) {
-        self.current = GameInstance::new(num_dots);
-    }
-
-    pub fn height(&self) -> u32 {
+    pub fn height(&self) -> u16 {
         self.config.height
     }
 
-    pub fn width(&self) -> u32 {
+    pub fn width(&self) -> u16 {
         self.config.width
     }
 
@@ -85,12 +81,24 @@ impl Game {
         self.current.level.tick();
     }
 
+    // TODO make just one handle_click and move all of this back into the wasm
+    // dispatch action by context
+
     pub fn add_player(&mut self, x: f32, y: f32) {
         self.current.level.add_player(x, y)
     }
 
+    pub fn next_level(&mut self) {
+        let level = self.current.level.level;
+        if level < 7 {
+            self.current = GameInstance::new(level + 1).unwrap()
+        } else {
+            self.restart_level()
+        }
+    }
+
     pub fn restart_level(&mut self) {
-        self.current.level.restart_level()
+        self.current.level.restart_level().unwrap()
     }
 
     pub fn pack(&self) -> *const f32 {

@@ -5,9 +5,7 @@ import { memory } from 'dots/dots_bg'
 const updatesPerSecond = 60
 const millisPerUpdate = 1 / updatesPerSecond * 1000
 
-var level = 3 // for demo purposes, this is 60 dots, 40 to win
-
-const game = new Game(level)
+var game = new Game()
 
 // set up the render context
 const canvas = document.getElementById('dots-canvas')
@@ -18,10 +16,22 @@ canvas.width = width
 const ctx = canvas.getContext('2d')
 ctx.globalAlpha = 0.8 // everything's a little transparent
 
-// Restart button - TODO have it flip and be the same button as start-game
-const restartButton = document.getElementById('restart-button')
-restartButton.addEventListener('click', event => {
-  game.load_level(level)
+// Restart game button
+const restartGameButton = document.getElementById('restart-game-button')
+restartGameButton.addEventListener('click', event => {
+  game = new Game()
+})
+
+// Restart level button
+const restartLevelButton = document.getElementById('restart-level-button')
+restartLevelButton.addEventListener('click', event => {
+  game.restart_level()
+})
+
+// Next level button
+const nextLevelButton = document.getElementById('next-level-button')
+nextLevelButton.addEventListener('click', event => {
+  game.next_level()
 })
 
 // Canvas click handler
@@ -46,47 +56,46 @@ const renderLoop = () => {
   game.tick()
   const levelPtr = game.pack()
 
-  // last_update is the 4th f32 transmitted in the header
-  // header format:
-  // level_number (unused!!) | total_dots | win_threshold | captured_dots | last_update
-  const header = new Float32Array(memory.buffer, levelPtr, 5)
-  const totalDots = header[1]
-  const winThreshold = header[2]
-  const capturedDots = header[3]
-  const lastUpdate = header[4]
+  // read header
+  // level_number | total_dots | win_threshold | captured_dots | last_update
+  const levelData = new Float32Array(memory.buffer, levelPtr, 5)
+  const level = levelData[0]
+  const totalDots = levelData[1]
+  const winThreshold = levelData[2]
+  const capturedDots = levelData[3]
+  const lastUpdate = levelData[4]
+
+  // get dots
+  const dataLength = totalDots * 7 + 5
+  const dots = new Float32Array(memory.buffer, levelPtr, dataLength).slice(5, dataLength + 1)
 
   if (Date.now() - lastUpdate >= millisPerUpdate) {
-    drawGame(levelPtr, totalDots, winThreshold, capturedDots)
+    drawGame(dots, level, totalDots, winThreshold, capturedDots)
     window.requestAnimationFrame(renderLoop)
   }
 }
 
 // Define how to draw a single frame
-const drawGame = (levelPtr, totalDots, winThreshold, capturedDots) => {
+const drawGame = (dots, level, totalDots, winThreshold, capturedDots) => {
   // Start with a blank slate
   ctx.clearRect(0, 0, width, height)
-
-  // grab so we can loop over the dots
-  const dataLength = totalDots * 7 + 5 // length of a packed dot
 
   // to tell if we won
   const won = capturedDots >= winThreshold
 
-  // load up the dots
-  const dots = new Float32Array(memory.buffer, levelPtr, dataLength)
-
   // Draw the progress counter
   ctx.font = '32px serif'
   ctx.fillStyle = won ? 'green' : 'red'
-  ctx.fillText(capturedDots + '/' + totalDots, 10, 42)
+  ctx.fillText(capturedDots + '/' + totalDots, 10, 42) // this will be wrong until I implement appstate - its including the player dot
 
   // Draw the level number
   ctx.font = '20px serif'
   ctx.fillStyle = 'blue'
   ctx.fillText('level ' + level, 10, 70)
 
-  // draw each dot, skipping the header
-  for (let idx = 5; idx < dataLength; idx += 7) {
+  // draw each dot
+  let dotsLength = dots.length
+  for (let idx = 0; idx < dotsLength; idx += 7) {
     // We're getting a packed [f32; 7]:  x | y | radius | DotState | r | g | b
     if (dots[idx + 3] !== 5.0) {
       const posX = dots[idx]

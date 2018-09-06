@@ -6,9 +6,10 @@ use std::{collections::HashMap, fmt};
 // UTILITY
 
 // Create initial dot layout
-fn init_dots(num_dots: u8) -> HashMap<u8, Dot> {
+fn init_dots(l: u16) -> Result<HashMap<u16, Dot>, ::std::io::Error> {
+    let (total_dots, _) = level(l)?;
     let mut ret = HashMap::new();
-    for idx in 0..num_dots {
+    for idx in 0..total_dots {
         ret.insert(
             idx,
             Dot::new(
@@ -18,7 +19,7 @@ fn init_dots(num_dots: u8) -> HashMap<u8, Dot> {
             ),
         );
     }
-    ret
+    Ok(ret)
 }
 
 // rgb color
@@ -124,12 +125,12 @@ impl From<(f32, f32)> for Point {
 pub enum DotState {
     Floating,
     Growing,
-    Full(u32),
+    Full(u16),
     Shrinking,
     Dead,
 }
 
-// because I'm stubborn and enjoy my Full(u32)
+// because I'm stubborn and enjoy my Full(u16)
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PackedDotState {
@@ -153,6 +154,7 @@ impl From<DotState> for PackedDotState {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Dot {
     pos: Point,
     radius: f32,
@@ -252,22 +254,22 @@ pub type PackedDot = [f32; 7];
 pub type LevelHeader = [f32; 5];
 
 pub struct Level {
-    dots: HashMap<u8, Dot>,
-    last_update: u32,
-    level: u8,
+    dots: HashMap<u16, Dot>,
+    last_update: u16,
+    pub level: u16,
     clicked: bool,
 }
 
 impl Level {
     // Public
 
-    pub fn new(l: u32) -> Level {
-        Level {
-            dots: init_dots(level(l as u8).unwrap().0),
+    pub fn new(l: u16) -> Result<Level, ::std::io::Error> {
+        Ok(Level {
+            dots: init_dots(l)?,
             last_update: now(),
-            level: l as u8,
+            level: l,
             clicked: false,
-        }
+        })
     }
 
     pub fn tick(&mut self) {
@@ -280,7 +282,7 @@ impl Level {
 
     pub fn add_player(&mut self, x: f32, y: f32) {
         if !self.clicked {
-            let idx = self.dots.len() as u8;
+            let idx = self.dots.len() as u16;
             self.dots.insert(
                 idx,
                 Dot::new((x, y).into(), Point::new(0.0, 0.0), DotState::Growing),
@@ -289,10 +291,11 @@ impl Level {
         }
     }
 
-    pub fn restart_level(&mut self) {
-        self.dots = init_dots(level(self.level).unwrap().0);
+    pub fn restart_level(&mut self) -> Result<(), ::std::io::Error> {
+        self.dots = init_dots(self.level)?;
         self.clicked = false;
         self.last_update = now();
+        Ok(())
     }
 
     pub fn pack(&self) -> Result<Vec<f32>, ::std::io::Error> {
@@ -313,7 +316,7 @@ impl Level {
 
     // Private
 
-    fn capture_dot(&mut self, id: u8) {
+    fn capture_dot(&mut self, id: u16) {
         self.dots
             .entry(id)
             // this code path should never execute
@@ -358,32 +361,48 @@ impl Level {
     // Array format:
     // [f32; 5]: level_number | total_dots | win_threshold | caputured_dots | last_update
     fn header(&self) -> Result<LevelHeader, ::std::io::Error> {
-        let (total_dots, win_threshold) = level(self.level)?;
-        let captured = total_dots - self
+        let (level_dots, win_threshold) = level(self.level)?;
+        let captured = level_dots - self
             .dots
             .iter()
             .filter(|(_, d)| d.state == DotState::Floating)
-            .collect::<Vec<(&u8, &Dot)>>()
-            .len() as u8;
+            .collect::<Vec<(&u16, &Dot)>>()
+            .len() as u16;
+        let total_dots = if self.clicked {
+            level_dots + 1
+        } else {
+            level_dots
+        };
         let mut ret: [f32; 5] = [0.0; 5];
         ret[0] = f32::from(self.level);
         ret[1] = f32::from(total_dots);
         ret[2] = f32::from(win_threshold);
         ret[3] = f32::from(captured);
-        ret[4] = self.last_update as f32;
+        ret[4] = f32::from(self.last_update);
         Ok(ret)
     }
 }
 
 // (total_dots, win_threshold)
-fn level(number: u8) -> Result<(u8, u8), ::std::io::Error> {
+fn level(number: u16) -> Result<(u16, u16), ::std::io::Error> {
     match number {
         1 => Ok((5, 1)),
-        2 => Ok((6, 2)),
-        3 => Ok((60, 40)),
+        2 => Ok((10, 3)),
+        3 => Ok((15, 4)),
+        4 => Ok((20, 7)),
+        5 => Ok((30, 10)),
+        6 => Ok((40, 15)),
+        7 => Ok((60, 40)),
         _ => Err(::std::io::Error::new(
             ::std::io::ErrorKind::InvalidInput,
             format!("No level defined: {}", number),
         )),
     }
 }
+
+//#[repr(u8)]
+//#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+//enum LevelState {
+//    Waiting = 0,
+//    Clicked = 1,
+//}
