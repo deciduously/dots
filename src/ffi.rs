@@ -1,6 +1,6 @@
 // FFI.rs contains the public FFI interface for wasm_bindgen
 use super::SCREEN_SIZE;
-use game::Level;
+use game::{Level, LevelState};
 use utils::set_panic_hook;
 use wasm_bindgen::prelude::*;
 
@@ -43,9 +43,10 @@ pub struct GameInstance {
 }
 
 impl GameInstance {
-    fn new(l: u16) -> Result<Self, String> {
+    fn new(l: u8) -> Result<Self, String> {
         Ok(Self {
             level: Level::new(l)?,
+            // total tries
         })
     }
 }
@@ -55,7 +56,7 @@ impl GameInstance {
 pub struct Game {
     config: GameConfig,
     current: GameInstance,
-    // overall score, levels completed
+    // overall score, levels complete
 }
 
 #[wasm_bindgen]
@@ -69,6 +70,8 @@ impl Game {
         }
     }
 
+    // Public
+
     pub fn height(&self) -> u16 {
         self.config.height
     }
@@ -78,31 +81,54 @@ impl Game {
     }
 
     pub fn tick(&mut self) {
-        self.current.level.tick();
+        self.current.level.tick().unwrap();
     }
 
-    // TODO make just one handle_click and move all of this back into the wasm
-    // dispatch action by context
-
-    pub fn add_player(&mut self, x: f32, y: f32) {
-        self.current.level.add_player(x, y)
-    }
-
-    pub fn next_level(&mut self) {
-        let level = self.current.level.level;
-        if level < 7 {
-            self.current = GameInstance::new(level + 1).unwrap()
-        } else {
-            self.current = GameInstance::new(level).unwrap();
+    pub fn handle_click(&mut self, x: f32, y: f32) {
+        use self::LevelState::*;
+        let state = self.level_state().clone();
+        match state {
+            Begin => {
+                self.current.level.begin().unwrap();
+            }
+            Waiting => {
+                self.add_player(x, y);
+            }
+            Clicked => {}
+            Won => {
+                self.next_level();
+            }
+            Lost => {
+                self.restart_level();
+            }
         }
-    }
-
-    pub fn restart_level(&mut self) {
-        let level = self.current.level.level;
-        self.current = GameInstance::new(level).unwrap()
     }
 
     pub fn pack(&self) -> *const f32 {
         self.current.level.pack().unwrap().as_ptr()
+    }
+
+    // Private
+    fn add_player(&mut self, x: f32, y: f32) {
+        self.current.level.add_player(x, y)
+    }
+
+    fn next_level(&mut self) {
+        let level = self.current.level.level;
+        if level < 12 {
+            self.current = GameInstance::new(level + 1).unwrap()
+        } else {
+            // End game!
+            self.current = GameInstance::new(level).unwrap();
+        }
+    }
+
+    fn restart_level(&mut self) {
+        let level = self.current.level.level;
+        self.current = GameInstance::new(level).unwrap()
+    }
+
+    fn level_state(&self) -> LevelState {
+        self.current.level.level_state
     }
 }

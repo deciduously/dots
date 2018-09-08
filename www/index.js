@@ -16,25 +16,6 @@ canvas.width = width
 const ctx = canvas.getContext('2d')
 ctx.globalAlpha = 0.8 // everything's a little transparent
 
-// Restart game button
-const restartGameButton = document.getElementById('restart-game-button')
-restartGameButton.addEventListener('click', event => {
-  game.free()
-  game = new Game()
-})
-
-// Restart level button
-const restartLevelButton = document.getElementById('restart-level-button')
-restartLevelButton.addEventListener('click', event => {
-  game.restart_level()
-})
-
-// Next level button
-const nextLevelButton = document.getElementById('next-level-button')
-nextLevelButton.addEventListener('click', event => {
-  game.next_level()
-})
-
 // Canvas click handler
 canvas.addEventListener('click', event => {
   // translate from page coords to canvas coords
@@ -48,11 +29,14 @@ canvas.addEventListener('click', event => {
   const canvasX = (event.clientX - boundingRect.left) * scaleX
   const canvasY = (event.clientY - boundingRect.top) * scaleY
 
-  game.add_player(canvasX, canvasY)
+  game.handle_click(canvasX, canvasY)
 })
 
 // define the main loop, updated 60 times per second
 const renderLoop = () => {
+  // Start with a blank slate
+  ctx.clearRect(0, 0, width, height)
+
   // tick us forward and grab the packed version
   game.tick()
   const levelPtr = game.pack()
@@ -67,24 +51,68 @@ const renderLoop = () => {
   const capturedDots = levelData[4]
   const lastUpdate = levelData[5]
 
-  // get dots
-  const dataLength = totalDots * 7 + 6
-  const dots = new Float32Array(memory.buffer, levelPtr, dataLength).slice(6)
+  // LevelState:
+  // Begin = 0,
+  // Waiting = 1,
+  // Clicked = 2,
+  // Won = 3,
+  // Lost = 4
 
-  if (Date.now() - lastUpdate >= millisPerUpdate) {
-    drawGame(dots, level, totalDots, winThreshold, capturedDots)
-    window.requestAnimationFrame(renderLoop)
+  switch (levelState) {
+    case 0: {
+      drawBeginLevel(level, winThreshold, totalDots)
+      window.requestAnimationFrame(renderLoop)
+      break
+    }
+    case 1:
+    case 2: {
+      // get dots
+      const dataLength = totalDots * 7 + 6
+      const dots = new Float32Array(memory.buffer, levelPtr, dataLength).slice(6)
+
+      if (Date.now() - lastUpdate >= millisPerUpdate) {
+        drawGame(dots, level, totalDots, winThreshold, capturedDots, levelState)
+        window.requestAnimationFrame(renderLoop)
+      }
+      break
+    }
+    case 3: {
+      drawNextLevel(level)
+      window.requestAnimationFrame(renderLoop)
+      break
+    }
+    case 4: {
+      drawRestartLevel(level)
+      window.requestAnimationFrame(renderLoop)
+      break
+    }
+    default: { }
   }
 }
 
 // DRAW FNS
 
-// Define how to draw a single frame
-const drawGame = (dots, level, totalDots, winThreshold, capturedDots) => {
-  // Start with a blank slate
-  ctx.clearRect(0, 0, width, height)
+const drawBeginLevel = (level, winThreshold, totalDots) => {
+  ctx.font = '36px serif'
+  ctx.fillStyle = 'purple'
+  ctx.fillText('Level ' + level + ' - capture ' + winThreshold, 200, 200)
+}
 
-  drawProgressCounter(capturedDots, totalDots, winThreshold)
+const drawRestartLevel = (level) => {
+  ctx.font = '20px serif'
+  ctx.fillStyle = 'blue'
+  ctx.fillText('Click anywhere to retry level ' + level, 10, 70)
+}
+
+const drawNextLevel = (level) => {
+  ctx.font = '20px serif'
+  ctx.fillStyle = 'blue'
+  ctx.fillText('Click anywhere to move on to level ' + (level + 1), 10, 70)
+}
+
+// Define how to draw a single frame
+const drawGame = (dots, level, totalDots, winThreshold, capturedDots, levelState) => {
+  drawProgressCounter(capturedDots, totalDots, winThreshold, levelState)
   drawLevelNumber(level)
 
   let dotsLength = dots.length
@@ -93,11 +121,12 @@ const drawGame = (dots, level, totalDots, winThreshold, capturedDots) => {
   }
 }
 
-const drawProgressCounter = (capturedDots, totalDots, winThreshold) => {
+const drawProgressCounter = (capturedDots, totalDots, winThreshold, levelState) => {
   const won = capturedDots >= winThreshold
+  const levelDots = (levelState == 1) ? totalDots : totalDots - 1
   ctx.font = '32px serif'
   ctx.fillStyle = won ? 'green' : 'red'
-  ctx.fillText(capturedDots + '/' + totalDots, 10, 42) // this will be wrong until I implement appstate - its including the player dot
+  ctx.fillText(capturedDots + '/' + levelDots + ' - goal: ' + winThreshold, 10, 42) // this will be wrong until I implement appstate - its including the player dot
 }
 
 const drawLevelNumber = level => {

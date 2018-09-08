@@ -6,7 +6,7 @@ use std::{collections::HashMap, fmt};
 // UTILITY
 
 // Create initial dot layout
-fn init_dots(l: u16) -> Result<HashMap<u16, Dot>, String> {
+fn init_dots(l: u8) -> Result<HashMap<u8, Dot>, String> {
     let (total_dots, _) = level(l)?;
     let mut ret = HashMap::new();
     for idx in 0..total_dots {
@@ -191,8 +191,8 @@ impl Dot {
                 }
             }
             Full(start_time) => {
-                // hang out at full for 200ms
-                if now() - start_time >= 200 {
+                // hang out at full for 300ms
+                if now() - start_time >= 300 {
                     self.state = Shrinking;
                 }
             }
@@ -254,42 +254,55 @@ pub type PackedDot = [f32; 7];
 pub type LevelHeader = [f32; 6];
 
 pub struct Level {
-    dots: HashMap<u16, Dot>,
+    dots: HashMap<u8, Dot>,
     last_update: u16,
-    pub level: u16,
-    level_state: LevelState,
-    clicked: bool,
+    pub level: u8,
+    pub level_state: LevelState,
 }
 
 impl Level {
     // Public
 
-    pub fn new(l: u16) -> Result<Level, String> {
+    pub fn new(l: u8) -> Result<Level, String> {
         Ok(Level {
-            dots: init_dots(l)?,
+            dots: HashMap::new(),
             last_update: now(),
             level: l,
-            level_state: LevelState::Waiting,
-            clicked: false,
+            level_state: LevelState::Begin,
         })
     }
 
-    pub fn tick(&mut self) {
-        for d in self.dots.values_mut() {
-            d.tick();
+    pub fn begin(&mut self) -> Result<(), String> {
+        self.dots = init_dots(self.level)?;
+        self.level_state = LevelState::Waiting;
+        Ok(())
+    }
+
+    pub fn tick(&mut self) -> Result<(), String> {
+        match self.level_state {
+            LevelState::Begin | LevelState::Won | LevelState::Lost => {
+                self.last_update = now();
+            }
+            _ => {
+                for d in self.dots.values_mut() {
+                    d.tick();
+                }
+                self.handle_collisions();
+                self.handle_death()?;
+                self.last_update = now();
+            }
         }
-        self.handle_collisions();
-        self.last_update = now();
+        Ok(())
     }
 
     pub fn add_player(&mut self, x: f32, y: f32) {
-        if !self.clicked {
-            let idx = self.dots.len() as u16;
+        if self.level_state == LevelState::Waiting {
+            let idx = self.dots.len() as u8;
             self.dots.insert(
                 idx,
                 Dot::new((x, y).into(), Point::new(0.0, 0.0), DotState::Growing),
             );
-            self.clicked = true;
+            self.level_state = LevelState::Clicked;
         }
     }
 
@@ -311,7 +324,7 @@ impl Level {
 
     // Private
 
-    fn capture_dot(&mut self, id: u16) {
+    fn capture_dot(&mut self, id: u8) {
         self.dots
             .entry(id)
             // this code path should never execute
@@ -353,21 +366,46 @@ impl Level {
         }
     }
 
+    // Check if we're all dead - the only dots are either Dead or Floating
+    fn handle_death(&mut self) -> Result<(), String> {
+        if self.level_state == LevelState::Clicked {
+            let active = self
+                .dots
+                .values()
+                .filter(|d| match d.state {
+                    DotState::Growing | DotState::Full(_) | DotState::Shrinking => true,
+                    _ => false,
+                }).collect::<Vec<&Dot>>();
+            if active.is_empty() {
+                let (level_dots, win_threshold) = level(self.level)?;
+                let captured = level_dots - self
+                    .dots
+                    .iter()
+                    .filter(|(_, d)| d.state == DotState::Floating)
+                    .collect::<Vec<(&u8, &Dot)>>()
+                    .len() as u8;
+                if captured >= win_threshold {
+                    self.level_state = LevelState::Won;
+                } else {
+                    self.level_state = LevelState::Lost;
+                }
+            }
+        }
+        Ok(())
+    }
+
     // Array format:
     // [f32; 6]: level_number | level_state | total_dots | win_threshold | caputured_dots | last_update
     fn header(&self) -> Result<LevelHeader, String> {
         let (level_dots, win_threshold) = level(self.level)?;
+        // grab the dots first, and then call separate filter and len on the local one instead of your total_dots if_else
         let captured = level_dots - self
             .dots
-            .iter()
-            .filter(|(_, d)| d.state == DotState::Floating)
-            .collect::<Vec<(&u16, &Dot)>>()
-            .len() as u16;
-        let total_dots = if self.clicked {
-            level_dots + 1
-        } else {
-            level_dots
-        };
+            .values()
+            .filter(|d| d.state == DotState::Floating)
+            .collect::<Vec<&Dot>>()
+            .len() as u8;
+        let total_dots = self.dots.len() as u8;
         let data_vec = vec![
             f32::from(self.level),
             f32::from(self.level_state as u8),
@@ -383,24 +421,30 @@ impl Level {
 }
 
 // (total_dots, win_threshold)
-fn level(number: u16) -> Result<(u16, u16), String> {
+fn level(number: u8) -> Result<(u8, u8), String> {
     match number {
         1 => Ok((5, 1)),
-        2 => Ok((10, 3)),
-        3 => Ok((15, 4)),
-        4 => Ok((20, 7)),
-        5 => Ok((30, 10)),
-        6 => Ok((40, 15)),
-        7 => Ok((60, 40)),
+        2 => Ok((10, 2)),
+        3 => Ok((15, 3)),
+        4 => Ok((20, 5)),
+        5 => Ok((25, 7)),
+        6 => Ok((30, 10)),
+        7 => Ok((35, 15)),
+        8 => Ok((40, 21)),
+        9 => Ok((45, 27)),
+        10 => Ok((50, 33)),
+        11 => Ok((55, 44)),
+        12 => Ok((60, 50)),
         _ => Err(format!("No level defined: {}", number)),
     }
 }
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum LevelState {
-    Waiting = 0,
-    Clicked = 1,
-    Won = 2,
-    Lost = 3,
+pub enum LevelState {
+    Begin = 0,
+    Waiting = 1,
+    Clicked = 2,
+    Won = 3,
+    Lost = 4,
 }
