@@ -58,17 +58,18 @@ const renderLoop = () => {
   const levelPtr = game.pack()
 
   // read header
-  // level_number | total_dots | win_threshold | captured_dots | last_update
-  const levelData = new Float32Array(memory.buffer, levelPtr, 5)
+  // level_number | level_state | total_dots | win_threshold | captured_dots | last_update
+  const levelData = new Float32Array(memory.buffer, levelPtr, 6)
   const level = levelData[0]
-  const totalDots = levelData[1]
-  const winThreshold = levelData[2]
-  const capturedDots = levelData[3]
-  const lastUpdate = levelData[4]
+  const levelState = levelData[1]
+  const totalDots = levelData[2]
+  const winThreshold = levelData[3]
+  const capturedDots = levelData[4]
+  const lastUpdate = levelData[5]
 
   // get dots
-  const dataLength = totalDots * 7 + 5
-  const dots = new Float32Array(memory.buffer, levelPtr, dataLength).slice(5)
+  const dataLength = totalDots * 7 + 6
+  const dots = new Float32Array(memory.buffer, levelPtr, dataLength).slice(6)
 
   if (Date.now() - lastUpdate >= millisPerUpdate) {
     drawGame(dots, level, totalDots, winThreshold, capturedDots)

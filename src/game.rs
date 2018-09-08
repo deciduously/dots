@@ -250,13 +250,14 @@ impl Dot {
 pub type PackedDot = [f32; 7];
 
 // this is the first few f32s in the array
-// level_number | total_dots | win_threshold | caputured_dots | last_update
-pub type LevelHeader = [f32; 5];
+// level_number | level_state | total_dots | win_threshold | caputured_dots | last_update
+pub type LevelHeader = [f32; 6];
 
 pub struct Level {
     dots: HashMap<u16, Dot>,
     last_update: u16,
     pub level: u16,
+    level_state: LevelState,
     clicked: bool,
 }
 
@@ -268,6 +269,7 @@ impl Level {
             dots: init_dots(l)?,
             last_update: now(),
             level: l,
+            level_state: LevelState::Waiting,
             clicked: false,
         })
     }
@@ -352,7 +354,7 @@ impl Level {
     }
 
     // Array format:
-    // [f32; 5]: level_number | total_dots | win_threshold | caputured_dots | last_update
+    // [f32; 6]: level_number | level_state | total_dots | win_threshold | caputured_dots | last_update
     fn header(&self) -> Result<LevelHeader, String> {
         let (level_dots, win_threshold) = level(self.level)?;
         let captured = level_dots - self
@@ -368,13 +370,14 @@ impl Level {
         };
         let data_vec = vec![
             f32::from(self.level),
+            f32::from(self.level_state as u8),
             f32::from(total_dots),
             f32::from(win_threshold),
             f32::from(captured),
             f32::from(self.last_update),
         ];
-        let mut ret: [f32; 5] = [0.0; 5];
-        ret[..5].copy_from_slice(&data_vec[..5]);
+        let mut ret: [f32; 6] = [0.0; 6];
+        ret[..6].copy_from_slice(&data_vec[..6]);
         Ok(ret)
     }
 }
@@ -393,9 +396,11 @@ fn level(number: u16) -> Result<(u16, u16), String> {
     }
 }
 
-//#[repr(u8)]
-//#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-//enum LevelState {
-//    Waiting = 0,
-//    Clicked = 1,
-//}
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LevelState {
+    Waiting = 0,
+    Clicked = 1,
+    Won = 2,
+    Lost = 3,
+}
