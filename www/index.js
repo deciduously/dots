@@ -92,22 +92,25 @@ const renderLoop = () => {
 
 // DRAW FNS
 
-const drawBeginLevel = (level, winThreshold, totalDots) => {
-  ctx.font = '36px serif'
-  ctx.fillStyle = 'purple'
-  ctx.fillText('Level ' + level + ' - capture ' + winThreshold, 200, 200)
+const drawLevelButton = (text, colorStr) => {
+  ctx.beginPath()
+  ctx.rect(325, 275, 150, 50)
+  ctx.stroke()
+  ctx.font = '18px serif'
+  ctx.fillStyle = colorStr
+  ctx.fillText(text, 330, 305)
+}
+
+const drawBeginLevel = (level, winThreshold) => {
+  drawLevelButton('Level ' + level + ' - capture ' + winThreshold, 'purple')
 }
 
 const drawRestartLevel = (level) => {
-  ctx.font = '20px serif'
-  ctx.fillStyle = 'blue'
-  ctx.fillText('Click anywhere to retry level ' + level, 10, 70)
+  drawLevelButton('Too bad! Retry ' + level, 'red')
 }
 
 const drawNextLevel = (level) => {
-  ctx.font = '20px serif'
-  ctx.fillStyle = 'blue'
-  ctx.fillText('Click anywhere to move on to level ' + (level + 1), 10, 70)
+  drawLevelButton('Nice job! Level ' + (level + 1), 'green')
 }
 
 // Define how to draw a single frame
@@ -124,7 +127,7 @@ const drawGame = (dots, level, totalDots, winThreshold, capturedDots, levelState
 const drawProgressCounter = (capturedDots, totalDots, winThreshold, levelState) => {
   const won = capturedDots >= winThreshold
   const levelDots = (levelState == 1) ? totalDots : totalDots - 1
-  ctx.font = '32px serif'
+  ctx.font = '22px serif'
   ctx.fillStyle = won ? 'green' : 'red'
   ctx.fillText(capturedDots + '/' + levelDots + ' - goal: ' + winThreshold, 10, 42) // this will be wrong until I implement appstate - its including the player dot
 }
