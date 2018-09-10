@@ -7,7 +7,7 @@ The logic is implemented in Rust targeting WebAssembly, with the rendering handl
 
 ## Usage
 
-Stay tuned, I plan to self-host the finished app.
+Play the current release on [deciduosuly.com](http://deciduously.com/static/extern/dots/index.html).
 
 ## Develop
 
