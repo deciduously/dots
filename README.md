@@ -1,5 +1,5 @@
 # dots
-WIP clone of [Boomshine](http://www.k2xl.com/games/boomshine/). The original requires Flash, so it's likely unplayable - an [Android app](https://play.google.com/store/apps/details?id=com.bantambytes.android.game.boomshine&hl=en_US) exists as well.
+Clone of [Boomshine](http://www.k2xl.com/games/boomshine/). The original requires Flash - an [Android app](https://play.google.com/store/apps/details?id=com.bantambytes.android.game.boomshine&hl=en_US) exists as well.  This version can be played [here](http://deciduously.com/static/extern/dots/index.html)
 
 The logic is implemented in Rust targeting WebAssembly, with the rendering handled by JavaScript to a `canvas` element.
 
@@ -7,7 +7,7 @@ The logic is implemented in Rust targeting WebAssembly, with the rendering handl
 
 ## Usage
 
-Play the current release on [deciduosuly.com](http://deciduously.com/static/extern/dots/index.html).
+Play the current release on [deciduously.com](http://deciduously.com/static/extern/dots/index.html).
 
 ## Develop
 
