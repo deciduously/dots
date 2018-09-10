@@ -3,7 +3,7 @@ WIP clone of [Boomshine](http://www.k2xl.com/games/boomshine/). The original req
 
 The logic is implemented in Rust targeting WebAssembly, with the rendering handled by JavaScript to a `canvas` element.
 
-![screenshot](https://i.imgur.com/zZD0hiI.png)
+![screenshot](https://i.imgur.com/QYgJVLW.png)
 
 ## Usage
 
