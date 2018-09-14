@@ -1,10 +1,6 @@
 import { Game } from 'dots'
 import { memory } from 'dots/dots_bg'
 
-// capping the tick to 60 times a second
-const updatesPerSecond = 60
-const millisPerUpdate = 1 / updatesPerSecond * 1000
-
 var game = new Game()
 
 // set up the render context
@@ -39,17 +35,16 @@ const renderLoop = () => {
 
   // tick us forward and grab the packed version
   game.tick()
-  const levelPtr = game.pack()
+  const headerPtr = game.header()
 
   // read header
-  // level_number | level_state | total_dots | win_threshold | captured_dots | last_update
-  const levelData = new Float32Array(memory.buffer, levelPtr, 6)
+  // level_number | level_state | total_dots | win_threshold | captured_dots
+  const levelData = new Uint8Array(memory.buffer, headerPtr, 5)
   const level = levelData[0]
   const levelState = levelData[1]
   const totalDots = levelData[2]
   const winThreshold = levelData[3]
   const capturedDots = levelData[4]
-  const lastUpdate = levelData[5]
 
   // LevelState:
   // Begin = 0,
@@ -67,13 +62,12 @@ const renderLoop = () => {
     case 1:
     case 2: {
       // get dots
-      const dataLength = totalDots * 7 + 6
-      const dots = new Float32Array(memory.buffer, levelPtr, dataLength).slice(6)
+      const dataLength = totalDots * 7
+      const dotsPtr = game.pack()
+      const dots = new Float32Array(memory.buffer, dotsPtr, dataLength)
 
-      if (Date.now() - lastUpdate >= millisPerUpdate) {
-        drawGame(dots, level, totalDots, winThreshold, capturedDots, levelState)
-        window.requestAnimationFrame(renderLoop)
-      }
+      drawGame(dots, level, totalDots, winThreshold, capturedDots, levelState)
+      window.requestAnimationFrame(renderLoop)
       break
     }
     case 3: {
@@ -113,7 +107,6 @@ const drawNextLevel = (level) => {
   drawLevelButton('Nice job! Level ' + (level + 1), 'green')
 }
 
-// Define how to draw a single frame
 const drawGame = (dots, level, totalDots, winThreshold, capturedDots, levelState) => {
   drawProgressCounter(capturedDots, totalDots, winThreshold, levelState)
   drawLevelNumber(level)

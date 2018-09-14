@@ -1,7 +1,7 @@
 // FFI.rs contains the public FFI interface for wasm_bindgen
 use super::SCREEN_SIZE;
 use game::{Level, LevelState};
-use utils::set_panic_hook;
+use util::set_panic_hook;
 use wasm_bindgen::prelude::*;
 
 // Imports
@@ -63,7 +63,7 @@ pub struct Game {
 impl Game {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        set_panic_hook();
+        set_panic_hook(); // no_op when compiled with --no-default-features
         Self {
             config: GameConfig::new(),
             current: GameInstance::new(1).unwrap(),
@@ -86,7 +86,7 @@ impl Game {
 
     pub fn handle_click(&mut self, x: f32, y: f32) {
         use self::LevelState::*;
-        let state = self.level_state().clone();
+        let state = self.level_state();
         match state {
             Begin => {
                 self.current.level.begin().unwrap();
@@ -102,6 +102,10 @@ impl Game {
                 self.restart_level();
             }
         }
+    }
+
+    pub fn header(&self) -> *const u8 {
+        self.current.level.header().unwrap().as_ptr()
     }
 
     pub fn pack(&self) -> *const f32 {
@@ -130,5 +134,11 @@ impl Game {
 
     fn level_state(&self) -> LevelState {
         self.current.level.level_state
+    }
+}
+
+impl Default for Game {
+    fn default() -> Self {
+        Self::new()
     }
 }

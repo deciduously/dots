@@ -1,5 +1,5 @@
 // game.rs contains the game logic
-use super::{FINAL_RADIUS, SCREEN_SIZE, SPEED, START_RADIUS};
+use super::{FINAL_RADIUS, GROWTH_SPEED, HANG_TIME, SCREEN_SIZE, SPEED, START_RADIUS};
 use ffi::{now, random};
 use std::{collections::HashMap, fmt};
 
@@ -70,8 +70,8 @@ impl Point {
     // random X,Y that fits in SCREEN_SIZE and is at least START_RADIUS from an edge
     fn random_point() -> Self {
         let min = START_RADIUS * 2.0 + 0.1;
-        let x_bound = SCREEN_SIZE.0 as f32;
-        let y_bound = SCREEN_SIZE.1 as f32;
+        let x_bound = f32::from(SCREEN_SIZE.0);
+        let y_bound = f32::from(SCREEN_SIZE.1);
         let mut ret: Self = (
             random() * (x_bound - min) + min,
             random() * (y_bound - min) + min,
@@ -107,7 +107,6 @@ impl Point {
         self.y += td.y
     }
 
-    // Thanks, Pythagoras!
     fn distance(self, target: Point) -> f32 {
         let a = self.x - target.x;
         let b = self.y - target.y;
@@ -176,7 +175,6 @@ impl Dot {
 
     fn tick(&mut self) {
         use self::DotState::*;
-        // TODO bounce off edges
         match self.state {
             Floating => {
                 self.pos.translate(self.translation);
@@ -187,20 +185,19 @@ impl Dot {
                     // To keep track of how long it's been full.
                     self.state = Full(now());
                 } else if self.radius < FINAL_RADIUS {
-                    self.radius += 0.5;
+                    self.radius += GROWTH_SPEED;
                 }
             }
             Full(start_time) => {
-                // hang out at full for 300ms
-                if now() - start_time >= 300 {
+                if now() - start_time >= HANG_TIME {
                     self.state = Shrinking;
                 }
             }
             Shrinking => {
-                if self.radius == START_RADIUS {
+                if self.radius == 0.0 {
                     self.state = Dead;
-                } else if self.radius > START_RADIUS {
-                    self.radius -= 0.5;
+                } else if self.radius > 0.0 {
+                    self.radius -= GROWTH_SPEED;
                 }
             }
             Dead => {}
@@ -213,9 +210,9 @@ impl Dot {
 
     fn handle_bounce(&mut self) {
         let top_bottom =
-            self.pos.x <= self.radius || self.pos.x >= (SCREEN_SIZE.0 as f32 - self.radius);
+            self.pos.x <= self.radius || self.pos.x >= (f32::from(SCREEN_SIZE.0) - self.radius);
         let left_right =
-            self.pos.y <= self.radius || self.pos.y >= (SCREEN_SIZE.1 as f32 - self.radius);
+            self.pos.y <= self.radius || self.pos.y >= (f32::from(SCREEN_SIZE.1) - self.radius);
 
         if top_bottom && left_right {
             // we hit a corner
@@ -230,7 +227,8 @@ impl Dot {
     }
 
     fn pack(&self) -> PackedDot {
-        let data_vec = vec![
+        // I really with those last 4 u8s could look like one f32...
+        [
             self.pos.x,
             self.pos.y,
             self.radius,
@@ -238,24 +236,20 @@ impl Dot {
             f32::from(self.color.r),
             f32::from(self.color.g),
             f32::from(self.color.b),
-        ];
-        let mut packed: PackedDot = [0.0; 7];
-        packed[..7].copy_from_slice(&data_vec[..7]);
-        packed
+        ]
     }
 }
 
 // Array layout:
+// TODO make this smaller!  only x, y, radius are floats - is it feasible to separate them per dot?
+// Can I make a linear segment shapend how I want it?  "Fake" an f32 built from four u8s?
+// You probably need to just write as 28 bytes.  4 each for x, y, radius, then 8 each for DotState, r, g, b
+// Then in JS just grab two arrays from the smae pointer at the right offsets
 // [f32: 7]  x | y | radius | DotState | r | g | b
 pub type PackedDot = [f32; 7];
 
-// this is the first few f32s in the array
-// level_number | level_state | total_dots | win_threshold | caputured_dots | last_update
-pub type LevelHeader = [f32; 6];
-
 pub struct Level {
     dots: HashMap<u8, Dot>,
-    last_update: u16,
     pub level: u8,
     pub level_state: LevelState,
 }
@@ -266,7 +260,6 @@ impl Level {
     pub fn new(l: u8) -> Result<Level, String> {
         Ok(Level {
             dots: HashMap::new(),
-            last_update: now(),
             level: l,
             level_state: LevelState::Begin,
         })
@@ -280,16 +273,13 @@ impl Level {
 
     pub fn tick(&mut self) -> Result<(), String> {
         match self.level_state {
-            LevelState::Begin | LevelState::Won | LevelState::Lost => {
-                self.last_update = now();
-            }
+            LevelState::Begin | LevelState::Won | LevelState::Lost => {}
             _ => {
                 for d in self.dots.values_mut() {
                     d.tick();
                 }
                 self.handle_collisions();
                 self.handle_death()?;
-                self.last_update = now();
             }
         }
         Ok(())
@@ -306,13 +296,30 @@ impl Level {
         }
     }
 
+    // Array format:
+    // [u8; 5]: level_number | level_state | total_dots | win_threshold | captured_dots
+    pub fn header(&self) -> Result<Vec<u8>, String> {
+        let (level_dots, win_threshold) = level(self.level)?;
+        // grab the dots first, and then call separate filter and len on the local one instead of your total_dots if_else
+        let captured = level_dots - self
+            .dots
+            .values()
+            .filter(|d| d.state == DotState::Floating)
+            .count() as u8;
+        let total_dots = self.dots.len() as u8;
+        let data_vec = vec![
+            self.level,
+            self.level_state as u8,
+            total_dots,
+            win_threshold,
+            captured,
+        ];
+        Ok(data_vec)
+    }
+
     pub fn pack(&self) -> Result<Vec<f32>, String> {
-        let header = self.header()?;
-        let num_dots_int = header[1] as i32 as usize;
-        let mut ret = Vec::with_capacity(num_dots_int * 7 + header.len());
-        for e in header.iter().cloned() {
-            ret.push(e)
-        }
+        let num_dots_int = self.dots.len() as usize;
+        let mut ret = Vec::with_capacity(num_dots_int * 7);
         for dot in self.dots.values() {
             let packed = dot.pack();
             for i in packed.iter().cloned() {
@@ -382,8 +389,7 @@ impl Level {
                     .dots
                     .iter()
                     .filter(|(_, d)| d.state == DotState::Floating)
-                    .collect::<Vec<(&u8, &Dot)>>()
-                    .len() as u8;
+                    .count() as u8;
                 if captured >= win_threshold {
                     self.level_state = LevelState::Won;
                 } else {
@@ -392,31 +398,6 @@ impl Level {
             }
         }
         Ok(())
-    }
-
-    // Array format:
-    // [f32; 6]: level_number | level_state | total_dots | win_threshold | caputured_dots | last_update
-    fn header(&self) -> Result<LevelHeader, String> {
-        let (level_dots, win_threshold) = level(self.level)?;
-        // grab the dots first, and then call separate filter and len on the local one instead of your total_dots if_else
-        let captured = level_dots - self
-            .dots
-            .values()
-            .filter(|d| d.state == DotState::Floating)
-            .collect::<Vec<&Dot>>()
-            .len() as u8;
-        let total_dots = self.dots.len() as u8;
-        let data_vec = vec![
-            f32::from(self.level),
-            f32::from(self.level_state as u8),
-            f32::from(total_dots),
-            f32::from(win_threshold),
-            f32::from(captured),
-            f32::from(self.last_update),
-        ];
-        let mut ret: [f32; 6] = [0.0; 6];
-        ret[..6].copy_from_slice(&data_vec[..6]);
-        Ok(ret)
     }
 }
 

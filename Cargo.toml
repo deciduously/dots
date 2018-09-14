@@ -14,12 +14,9 @@ wasm-bindgen = "0.2"
 optional = true
 version = "0.1.1"
 
-[dependencies.wee_alloc]
-optional = true
-version = "0.4.1"
-
 [features]
-default-features = ["console_error_panic_hook", "wee_alloc"]
+default-features = ["console_error_panic_hook"]
+# default-features = false
 
 [lib]
 crate-type = ["cdylib"]
@@ -27,7 +24,5 @@ crate-type = ["cdylib"]
 # code size when deploying.
 console_error_panic_hook = { version = "0.1.1", optional = true }
 
-# `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
-# compared to the default allocator's ~10K. It is slower than the default
-# allocator, however.
-wee_alloc = { version = "0.4.1", optional = true }
+[profile.release]
+lto = true
