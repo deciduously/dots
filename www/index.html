@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <title>dots</title>
   <style>
-    body {
+    .app {
       position: absolute;
       top: 0;
       left: 0;
@@ -16,14 +16,48 @@
       align-items: center;
       justify-content: center;
     }
+
+    .title {
+      display: flex;
+    }
+
+    .title h1 {
+      text-align: center;
+    }
+
+    .score {
+      display: flex;
+    }
+
+    .score ul {
+      list-style: none;
+    }
+
+    .score li {
+      text-align: center;
+    }
+
+    .dots-canvas {
+      display: flex;
+    }
   </style>
 </head>
 
 <body>
-  <h1>dots</h1>
-  <canvas id="dots-canvas"></canvas>
-  <footer><a href="https://github.com/deciduously/dots">source</a></footer>
-  <script src="./bootstrap.js"></script>
+  <div class="app">
+    <div class="title">
+      <h1>dots</h1>
+    </div>
+    <div class="score">
+      <ul>
+        <li>Attempts: <span id="current-attempts"></span></li>
+        <li>Total attempts: <span id="total-attempts"></span></li>
+      </ul>
+    </div>
+    <canvas id="dots-canvas"></canvas>
+    <footer><a href="https://github.com/deciduously/dots">source</a></footer>
+    <script src="./bootstrap.js"></script>
+  </div>
 </body>
 
 </html>

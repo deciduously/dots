@@ -1,6 +1,7 @@
 // FFI.rs contains the public FFI interface for wasm_bindgen
 use super::SCREEN_SIZE;
 use game::{Level, LevelState};
+use std::cell::Cell;
 use util::set_panic_hook;
 use wasm_bindgen::prelude::*;
 
@@ -10,6 +11,9 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen(js_namespace = Math)]
 extern "C" {
     pub fn random() -> f32;
+// try once you know attempts are working.  you may need ot drop the max level to test restart_game
+// #[wasm_bindgen(js_namespace = Date)]
+// pub fn now() -> u16;
 }
 
 // using Date.now from JS to track state changes
@@ -39,6 +43,9 @@ impl GameConfig {
 #[wasm_bindgen]
 #[repr(C)]
 pub struct GameInstance {
+    attempts: Cell<u32>, // these will just be rendered to the dom and updated on level changes?
+    current_attempts: Cell<u32>,
+    //total_collected: u32, this is a little trickier, come back to it.  the level doesnt report when its over beyond changing the state
     level: Level,
 }
 
@@ -46,8 +53,26 @@ impl GameInstance {
     fn new(l: u8) -> Result<Self, String> {
         Ok(Self {
             level: Level::new(l)?,
-            // total tries
+            attempts: Cell::new(0),
+            current_attempts: Cell::new(0),
         })
+    }
+
+    fn score(&self) -> [u32; 2] {
+        [self.attempts.get(), self.current_attempts.get()]
+    }
+
+    fn start_level(&mut self, l: u8) -> Result<(), String> {
+        self.level = Level::new(l)?;
+        self.current_attempts.set(self.current_attempts.get() + 1);
+        Ok(())
+    }
+
+    fn next_level(&mut self, l: u8) -> Result<(), String> {
+        self.level = Level::new(l + 1)?;
+        self.attempts.set(self.current_attempts.get() + 1);
+        self.current_attempts.set(0);
+        Ok(())
     }
 }
 
@@ -112,6 +137,10 @@ impl Game {
         self.current.level.pack().unwrap().as_ptr()
     }
 
+    pub fn score(&self) -> *const u32 {
+        self.current.score().as_ptr()
+    }
+
     // Private
     fn add_player(&mut self, x: f32, y: f32) {
         self.current.level.add_player(x, y)
@@ -119,17 +148,20 @@ impl Game {
 
     fn next_level(&mut self) {
         let level = self.current.level.level;
-        if level < 12 {
-            self.current = GameInstance::new(level + 1).unwrap()
-        } else {
-            // End game!
-            self.current = GameInstance::new(level).unwrap();
-        }
+        self.current
+            .next_level(level)
+            .unwrap_or_else(|_| self.restart_game());
+    }
+
+    fn restart_game(&mut self) {
+        self.current.attempts.set(0);
+        self.current.current_attempts.set(0);
+        self.current.start_level(1).unwrap();
     }
 
     fn restart_level(&mut self) {
         let level = self.current.level.level;
-        self.current = GameInstance::new(level).unwrap()
+        self.current.start_level(level).unwrap();
     }
 
     fn level_state(&self) -> LevelState {

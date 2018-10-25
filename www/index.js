@@ -1,7 +1,50 @@
 import { Game } from 'dots'
 import { memory } from 'dots/dots_bg'
 
+const finalRadius = 50.0;
+
 var game = new Game()
+
+// So the idea here is to put all thje drawing fns into like the example to call from Rust
+// then in Rust, create a draw: thing that does all of it - get the attempts stuff outta the DOM you idiot
+// and then back here call module.draw() in our event loop.
+
+// I think this means we can stop doing packing at all ?!
+
+// Set up the score
+// TODO REMOVE - you're bringing this back into the module
+//const attempts = document.getElementById('current-attempts')
+//const totalAttempts = document.getElementById('total-attempts')
+
+//const updateScore = () => {
+//  let scorePtr = game.score()
+//  let score = new Uint32Array(memory.buffer, scorePtr, 2)
+//  let newTotalAttempts = score[0]
+//  let newCurrentAttempts = score[1]
+//  attempts.innerHTML = newCurrentAttempts
+//  totalAttempts.innerHTML = newTotalAttempts
+//}
+
+// The following pattern is borrowed from https://github.com/aochagavia/rocket_wasm/blob/master/html/index.html
+
+// Returns an object containing the dot canvas resource
+function dotCanvas() {
+  let res = {
+    dot: document.createElement('canvas'),
+  }
+
+  res.dot.width = finalRadius // the biggest it will ever be
+  res.dot.height = finalRadius
+  let dCtx = res.dot.getContext('2d')
+  dCtx.beginPath()
+  // use an arc from 0 to 2pi to draw a full circle
+  // the actual size is handled down in imports()
+  dCtx.arc(10, 10, 25, 0, 2 * Math.PI, false)
+  //dCtx.fillStyle = color // see if you cna do it in imports()
+  dCtx.fill()
+  dCtx.stroke()
+
+}
 
 // set up the render context
 const canvas = document.getElementById('dots-canvas')
@@ -104,7 +147,8 @@ const drawRestartLevel = (level) => {
 }
 
 const drawNextLevel = (level) => {
-  drawLevelButton('Nice job! Level ' + (level + 1), 'green')
+  const nextText = (level >= 12) ? 'Game over!  Restart game?' : 'Nice job! Level ' + (level + 1)
+  drawLevelButton(nextText, 'green')
 }
 
 const drawGame = (dots, level, totalDots, winThreshold, capturedDots, levelState) => {
@@ -119,10 +163,10 @@ const drawGame = (dots, level, totalDots, winThreshold, capturedDots, levelState
 
 const drawProgressCounter = (capturedDots, totalDots, winThreshold, levelState) => {
   const won = capturedDots >= winThreshold
-  const levelDots = (levelState == 1) ? totalDots : totalDots - 1
+  const levelDots = (levelState === 1) ? totalDots : totalDots - 1
   ctx.font = '22px serif'
   ctx.fillStyle = won ? 'green' : 'red'
-  ctx.fillText(capturedDots + '/' + levelDots + ' - goal: ' + winThreshold, 10, 42) // this will be wrong until I implement appstate - its including the player dot
+  ctx.fillText(capturedDots + '/' + levelDots + ' - goal: ' + winThreshold, 10, 42)
 }
 
 const drawLevelNumber = level => {
