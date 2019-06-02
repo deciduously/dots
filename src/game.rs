@@ -301,11 +301,12 @@ impl Level {
     pub fn header(&self) -> Result<Vec<u8>, String> {
         let (level_dots, win_threshold) = level(self.level)?;
         // grab the dots first, and then call separate filter and len on the local one instead of your total_dots if_else
-        let captured = level_dots - self
-            .dots
-            .values()
-            .filter(|d| d.state == DotState::Floating)
-            .count() as u8;
+        let captured = level_dots
+            - self
+                .dots
+                .values()
+                .filter(|d| d.state == DotState::Floating)
+                .count() as u8;
         let total_dots = self.dots.len() as u8;
         let data_vec = vec![
             self.level,
@@ -360,7 +361,8 @@ impl Level {
                     .filter(|(_, d)| match d.state {
                         DotState::Growing | DotState::Full(_) | DotState::Shrinking => true,
                         _ => false,
-                    }).for_each(|(_, target)| {
+                    })
+                    .for_each(|(_, target)| {
                         let distance = active.pos.distance(target.pos);
                         let radius_sum = active.radius + target.radius;
                         if distance <= radius_sum {
@@ -382,14 +384,16 @@ impl Level {
                 .filter(|d| match d.state {
                     DotState::Growing | DotState::Full(_) | DotState::Shrinking => true,
                     _ => false,
-                }).collect::<Vec<&Dot>>();
+                })
+                .collect::<Vec<&Dot>>();
             if active.is_empty() {
                 let (level_dots, win_threshold) = level(self.level)?;
-                let captured = level_dots - self
-                    .dots
-                    .iter()
-                    .filter(|(_, d)| d.state == DotState::Floating)
-                    .count() as u8;
+                let captured = level_dots
+                    - self
+                        .dots
+                        .iter()
+                        .filter(|(_, d)| d.state == DotState::Floating)
+                        .count() as u8;
                 if captured >= win_threshold {
                     self.level_state = LevelState::Won;
                 } else {

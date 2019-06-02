@@ -8,17 +8,12 @@ use wasm_bindgen::prelude::*;
 // Imports
 
 // using Math.random from JS for colors, positions, directions
-#[wasm_bindgen(js_namespace = Math)]
+#[wasm_bindgen]
 extern "C" {
+    #[wasm_bindgen(js_namespace = Math)]
     pub fn random() -> f32;
-// try once you know attempts are working.  you may need ot drop the max level to test restart_game
-// #[wasm_bindgen(js_namespace = Date)]
-// pub fn now() -> u16;
-}
-
-// using Date.now from JS to track state changes
-#[wasm_bindgen(js_namespace = Date)]
-extern "C" {
+    // try once you know attempts are working.  you may need ot drop the max level to test restart_game
+    #[wasm_bindgen(js_namespace = Date)]
     pub fn now() -> u16;
 }
 
