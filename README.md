@@ -1,5 +1,5 @@
 # dots
-Clone of [Boomshine](http://www.k2xl.com/games/boomshine/).  This version can be played [here](http://deciduously.com/dots)
+Clone of [Boomshine](http://www.k2xl.com/games/boomshine/).  This version can be played [here](https://deciduously.github.io/dots/)
 
 The logic is implemented in Rust targeting WebAssembly, with the rendering handled by JavaScript to a `canvas` element.
 
