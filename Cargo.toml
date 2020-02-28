@@ -7,12 +7,15 @@ version = "0.0.1"
 repository = "https://github.com/deciduously/dots.git"
 
 [dependencies]
-cfg-if = "0.1.7"
+cfg-if = "0.1.10"
 wasm-bindgen = "0.2"
 
 [dependencies.console_error_panic_hook]
 optional = true
 version = "0.1.6"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
 
 [features]
 default = ["console_error_panic_hook"]

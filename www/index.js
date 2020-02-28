@@ -133,7 +133,7 @@ const drawLevelButton = (text, colorStr) => {
   ctx.beginPath()
   ctx.rect(325, 275, 150, 50)
   ctx.stroke()
-  ctx.font = '18px serif'
+  ctx.font = '14px serif'
   ctx.fillStyle = colorStr
   ctx.fillText(text, 330, 305)
 }
