@@ -11,18 +11,16 @@ Play the current release on [deciduously.com](http://deciduously.com/static/exte
 
 ## Develop
 
-Requires Rust nightly and `wasm-pack`. 
+Requires `wasm-pack`.
 
 1. Clone this repo
 2. Execute `wasm-pack build` in the project root
-3. Execute `yarn link` in the newly generated `pkg` dir to make the WASM module available to the frontend
-4. Execute `yarn link dots` in the `www` dir
-5. If this is the first run, execute `yarn install` in the `www` dir
-6. Execute `yarn start` from within `www`.  This will serve the app on `localhost:8080`
+3. Execute `npm link` in the newly generated `pkg` dir to make the WASM module available to the frontend
+4. Execute `npm link dots` in the `www` dir
+5. If this is the first run, execute `npm install` in the `www` dir
+6. Execute `npm run start` from within `www`.  This will serve the app on `localhost:8080`
 
 For future rebuilds, you only need step 2 every time you change the Rust code and 6 just once to start the dev server.
-
-Compile with `--no-default-features` to disable the console error debugging machinery for deployment.
 
 ## Acknowledgements
 
