@@ -14,4 +14,4 @@ jobs:
     - name: Build
       run: wasm-pack build
     - name: Run Rust tests
-      run: wasm-pack test
+      run: wasm-pack test --firefox
