@@ -15,8 +15,6 @@ Requires `wasm-pack`.
 
 1. Clone this repo
 2. Execute `wasm-pack build` in the project root
-3. Execute `npm link` in the newly generated `pkg` dir to make the WASM module available to the frontend
-4. Execute `npm link dots` in the `www` dir
 5. If this is the first run, execute `npm install` in the `www` dir
 6. Execute `npm run start` from within `www`.  This will serve the app on `localhost:8080`
 
